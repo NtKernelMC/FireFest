@@ -26,12 +26,16 @@ private:
 		bool FlareEnabled;
 		bool BombingEnabled;
 		bool StingerEnabled;
+		bool MisleadEnabled;
 		DWORD iterationDelay;
+		DWORD LastTarget;
 		HacksData()
 		{
+			LastTarget = 0x0;
 			FlareEnabled = false;
 			BombingEnabled = false;
 			StingerEnabled = false;
+			MisleadEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;

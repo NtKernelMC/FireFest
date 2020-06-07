@@ -30,6 +30,23 @@ void __stdcall FireFest::KeyChecker(void)
             else MessageBeep(MB_ICONASTERISK);
             hacks.StingerEnabled ^= true;
         }
+        if (GetAsyncKeyState(VK_INSERT))
+        {
+            if (!hacks.MisleadEnabled) MessageBeep(MB_ICONERROR);
+            else MessageBeep(MB_ICONASTERISK);
+            hacks.MisleadEnabled ^= true;
+        }
+        if (GetAsyncKeyState(VK_RBUTTON))
+        {
+            DWORD TargetPointer = *(DWORD*)0xB6F3B8;
+            DWORD TargetPed = *(DWORD*)(TargetPointer + 0x79C);
+            if (TargetPed != NULL)
+            {
+                hacks.LastTarget = TargetPed;
+                MessageBeep(MB_ICONINFORMATION);
+                Sleep(1000);
+            }
+        }
         Sleep(150);
     }
 }
@@ -50,7 +67,7 @@ void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)
     {
-        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled) continue;
+        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && !hacks.MisleadEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -82,6 +99,15 @@ void __stdcall FireFest::PedPoolParser(void)
                             DWORD VehEntity = *(DWORD*)(CPed + 0x58C); 
                             CVector direction(0, -180.0f, 0); TargetPos.fZ += 100.0f;
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET_HS, TargetPos, 5.0f, &direction, (CEntity*)VehEntity);
+                            Sleep(900);
+                        }
+                    }
+                    if (hacks.MisleadEnabled)
+                    {
+                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        {
+                            TargetPos.fZ += 1.5f; TargetPos.fX += 1.5f;
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(900);
                         }
                     }

@@ -6,3 +6,8 @@
 *.db
 *.opendb
 *.sqlite
+*.iobj
+*.dll
+*.obj
+*.tlog
+*.ipdb
