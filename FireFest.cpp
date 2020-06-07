@@ -32,9 +32,15 @@ void __stdcall FireFest::KeyChecker(void)
         }
         if (GetAsyncKeyState(VK_INSERT))
         {
-            if (!hacks.MisleadEnabled) MessageBeep(MB_ICONERROR);
+            if (!hacks.MisleadEnabled) MessageBeep(MB_ICONWARNING);
             else MessageBeep(MB_ICONASTERISK);
             hacks.MisleadEnabled ^= true;
+        }
+        if (GetAsyncKeyState(VK_SNAPSHOT))
+        {
+            if (!hacks.KickerEnabled) MessageBeep(MB_ICONWARNING);
+            else MessageBeep(MB_ICONASTERISK);
+            hacks.KickerEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
@@ -47,7 +53,7 @@ void __stdcall FireFest::KeyChecker(void)
                 Sleep(1000);
             }
         }
-        Sleep(150);
+        Sleep(350);
     }
 }
 FireFest::CEntity* __stdcall FireFest::GetLocalEntity(void)
@@ -67,7 +73,7 @@ void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)
     {
-        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && !hacks.MisleadEnabled) continue;
+        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && !hacks.MisleadEnabled && !hacks.KickerEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -106,8 +112,21 @@ void __stdcall FireFest::PedPoolParser(void)
                     {
                         if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
                         {
-                            TargetPos.fZ += 1.5f; TargetPos.fX += 1.5f;
+                            TargetPos.fZ += 3.0f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
+                            Sleep(900);
+                        }
+                    }
+                    if (hacks.KickerEnabled)
+                    {
+                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        {
+                            //WEAPONTYPE_MOLOTOV -- success
+                            //WEAPONTYPE_TEARGAS --- убивает при спавне на игроке, управляемы камерой и на 0.3f отскакивают от скина быстро
+                            // может даже убить или запустить игрока WEAPONTYPE_GRENADE аналогичные
+                            //WEAPONTYPE_REMOTE_SATCHEL_CHARGE пиздит пизже и валит с ног и не дает встать
+                            TargetPos.fZ -= 0.3f; 
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(900);
                         }
                     }

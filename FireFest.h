@@ -27,6 +27,7 @@ private:
 		bool BombingEnabled;
 		bool StingerEnabled;
 		bool MisleadEnabled;
+		bool KickerEnabled;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		HacksData()
@@ -36,6 +37,7 @@ private:
 			BombingEnabled = false;
 			StingerEnabled = false;
 			MisleadEnabled = false;
+			KickerEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;
