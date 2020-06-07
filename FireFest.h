@@ -12,6 +12,8 @@
 using namespace std;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
+#define MAX_PROJECTILES 32
+#define REPEAT_DELAY 900
 class FireFest
 {
 private:
@@ -28,6 +30,7 @@ private:
 		bool StingerEnabled;
 		bool MisleadEnabled;
 		bool KickerEnabled;
+		bool FugasEnabled;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		HacksData()
@@ -38,6 +41,7 @@ private:
 			StingerEnabled = false;
 			MisleadEnabled = false;
 			KickerEnabled = false;
+			FugasEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;

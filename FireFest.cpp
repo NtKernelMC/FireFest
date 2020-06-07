@@ -14,33 +14,39 @@ void __stdcall FireFest::KeyChecker(void)
     {
         if (GetAsyncKeyState(VK_END))
         {
-            if (!hacks.FlareEnabled) MessageBeep(MB_ICONERROR);
-            else MessageBeep(MB_ICONASTERISK);
+            if (!hacks.FlareEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
             hacks.FlareEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_DELETE))
         {
-            if (!hacks.BombingEnabled) MessageBeep(MB_ICONERROR);
-            else MessageBeep(MB_ICONASTERISK);
+            if (!hacks.BombingEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
             hacks.BombingEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_HOME))
         {
-            if (!hacks.StingerEnabled) MessageBeep(MB_ICONERROR);
-            else MessageBeep(MB_ICONASTERISK);
+            if (!hacks.StingerEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
             hacks.StingerEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_INSERT))
         {
-            if (!hacks.MisleadEnabled) MessageBeep(MB_ICONWARNING);
-            else MessageBeep(MB_ICONASTERISK);
+            if (!hacks.MisleadEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
             hacks.MisleadEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_SNAPSHOT))
         {
-            if (!hacks.KickerEnabled) MessageBeep(MB_ICONWARNING);
-            else MessageBeep(MB_ICONASTERISK);
+            if (!hacks.KickerEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
             hacks.KickerEnabled ^= true;
+        }
+        if (GetAsyncKeyState('B'))
+        {
+            if (!hacks.FugasEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.FugasEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
@@ -49,7 +55,7 @@ void __stdcall FireFest::KeyChecker(void)
             if (TargetPed != NULL)
             {
                 hacks.LastTarget = TargetPed;
-                MessageBeep(MB_ICONINFORMATION);
+                MessageBeep(MB_ICONHAND);
                 Sleep(1000);
             }
         }
@@ -73,7 +79,8 @@ void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)
     {
-        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && !hacks.MisleadEnabled && !hacks.KickerEnabled) continue;
+        if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && 
+        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -90,13 +97,11 @@ void __stdcall FireFest::PedPoolParser(void)
                 float health = *(float*)(CPed + 0x540);
                 if (health > 0.f)
                 {
-                    if (hacks.FlareEnabled)
-                    AddProjectile(GetLocalEntity(), WEAPONTYPE_FLARE, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                     if (hacks.BombingEnabled)
                     {
                         CVector direction(0, -180.0f, 0); TargetPos.fZ += 30.0f;
                         AddProjectile(GetLocalEntity(), WEAPONTYPE_FREEFALL_BOMB, TargetPos, 5.0f, &direction, nullptr);
-                        Sleep(400);
+                        Sleep(REPEAT_DELAY);
                     }
                     if (hacks.StingerEnabled)
                     {
@@ -105,7 +110,15 @@ void __stdcall FireFest::PedPoolParser(void)
                             DWORD VehEntity = *(DWORD*)(CPed + 0x58C); 
                             CVector direction(0, -180.0f, 0); TargetPos.fZ += 100.0f;
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET_HS, TargetPos, 5.0f, &direction, (CEntity*)VehEntity);
-                            Sleep(900);
+                            Sleep(REPEAT_DELAY);
+                        }
+                    }
+                    if (hacks.FlareEnabled)
+                    {
+                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        {
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_FLARE, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
+                            Sleep(REPEAT_DELAY); 
                         }
                     }
                     if (hacks.MisleadEnabled)
@@ -114,7 +127,16 @@ void __stdcall FireFest::PedPoolParser(void)
                         {
                             TargetPos.fZ += 3.0f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
-                            Sleep(900);
+                            Sleep(REPEAT_DELAY);
+                        }
+                    }
+                    if (hacks.FugasEnabled)
+                    {
+                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        {
+                            CVector direction(0.0f, 0.0f, 0.0f);
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_MOLOTOV, TargetPos, 3.0f, &direction, nullptr);
+                            Sleep(REPEAT_DELAY);
                         }
                     }
                     if (hacks.KickerEnabled)

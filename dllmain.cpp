@@ -1,5 +1,5 @@
 ﻿/*
-	---- FireFest v4 by NtKernelMC
+	---- FireFest v7 by NtKernelMC
 	Becoming God!
 */
 #include <Windows.h>
