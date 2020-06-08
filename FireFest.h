@@ -31,6 +31,7 @@ private:
 		bool MisleadEnabled;
 		bool KickerEnabled;
 		bool FugasEnabled;
+		bool TeargasEnabled;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		HacksData()
@@ -42,6 +43,7 @@ private:
 			MisleadEnabled = false;
 			KickerEnabled = false;
 			FugasEnabled = false;
+			TeargasEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;

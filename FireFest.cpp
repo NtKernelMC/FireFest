@@ -42,11 +42,17 @@ void __stdcall FireFest::KeyChecker(void)
             else MessageBeep(MB_ICONERROR);
             hacks.KickerEnabled ^= true;
         }
-        if (GetAsyncKeyState('B'))
+        if (GetAsyncKeyState(VK_NUMPAD1))
         {
             if (!hacks.FugasEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.FugasEnabled ^= true;
+        }
+        if (GetAsyncKeyState(VK_NUMPAD2))
+        {
+            if (!hacks.TeargasEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.TeargasEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
@@ -80,7 +86,7 @@ void __stdcall FireFest::PedPoolParser(void)
     while (true)
     {
         if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && 
-        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled) continue;
+        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && !hacks.TeargasEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -149,7 +155,16 @@ void __stdcall FireFest::PedPoolParser(void)
                             //WEAPONTYPE_REMOTE_SATCHEL_CHARGE пиздит пизже и валит с ног и не дает встать
                             TargetPos.fZ -= 0.3f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
-                            Sleep(900);
+                            Sleep(REPEAT_DELAY);
+                        }
+                    }
+                    if (hacks.TeargasEnabled)
+                    {
+                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        {
+                            CVector direction(0.0f, 0.0f, 0.0f);
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 0.0f, &direction, nullptr);
+                            Sleep(REPEAT_DELAY);
                         }
                     }
                 }
