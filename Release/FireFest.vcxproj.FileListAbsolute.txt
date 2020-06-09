@@ -1,1 +1,1 @@
-C:\Users\Czynnik.WSZYSTKO-21\source\repos\FireFest\Release\FireFest.dll
+C:\Users\Czynnik.WSZYSTKO-21\source\repos\FireFest\Release\dxgi.dll
