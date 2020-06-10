@@ -17,9 +17,29 @@ using namespace std;
 class FireFest
 {
 private:
+	enum eExplosionType
+	{
+		EXP_TYPE_GRENADE,
+		EXP_TYPE_MOLOTOV,
+		EXP_TYPE_ROCKET,
+		EXP_TYPE_TINY_ROCKET,
+		EXP_TYPE_VEHICLE,
+		EXP_TYPE_FASTVEHICLE,
+		EXP_TYPE_BOAT,
+		EXP_TYPE_HELICOPTER,
+		EXP_TYPE_MINE,
+		EXP_TYPE_OBJECT,
+		EXP_TYPE_TANK,
+		EXP_TYPE_SMALL,
+		EXP_TYPE_VERY_TINY
+	};
+	static DWORD scanAddr;
 	typedef void CClientGame;
+	static CClientGame* g_pClientGame;
 	typedef void CEntity;
 	typedef void CPed;
+	typedef void CClientPlayer;
+	static CClientPlayer* pPlayer;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	static ptrAddProjectile AddProjectile;
@@ -32,6 +52,7 @@ private:
 		bool KickerEnabled;
 		bool FugasEnabled;
 		bool TeargasEnabled;
+		bool ExplosionEnabled;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		HacksData()
@@ -44,6 +65,7 @@ private:
 			KickerEnabled = false;
 			FugasEnabled = false;
 			TeargasEnabled = false;
+			ExplosionEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;
@@ -53,4 +75,7 @@ public:
 	static void __stdcall PedPoolParser(void);
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
+	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);
+	static void __stdcall InstallDoPulsePreFrameHook();
+	static void __fastcall DoPulsePreFrame(CClientGame* ECX, void* EDX);
 };

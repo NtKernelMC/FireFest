@@ -1,8 +1,12 @@
 #include "FireFest.h"
 FireFest::HacksData FireFest::hacks;
+DWORD FireFest::scanAddr = 0x0;
+FireFest::CClientGame* FireFest::g_pClientGame = nullptr;
+FireFest::CClientPlayer* FireFest::pPlayer = nullptr;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
 void __stdcall FireFest::InitHacks()
 {
+    InstallDoPulsePreFrameHook();
     thread KeysLoop(KeyChecker); 
     KeysLoop.detach();
     thread ParseIt(PedPoolParser);
@@ -54,6 +58,11 @@ void __stdcall FireFest::KeyChecker(void)
             else MessageBeep(MB_ICONERROR);
             hacks.TeargasEnabled ^= true;
         }
+        if (GetAsyncKeyState(VK_NUMPAD3))
+        {
+            MessageBeep(MB_ICONASTERISK);
+            hacks.ExplosionEnabled = true;
+        }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
             DWORD TargetPointer = *(DWORD*)0xB6F3B8;
@@ -64,6 +73,15 @@ void __stdcall FireFest::KeyChecker(void)
                 MessageBeep(MB_ICONHAND);
                 Sleep(1000);
             }
+        }
+        if (GetAsyncKeyState(VK_MBUTTON))
+        {
+           pPlayer = GetClosestRemotePlayer(GetMyOwnPos(), 10.0f);
+           if (pPlayer != nullptr)
+           {
+               MessageBeep(MB_ICONHAND);
+               Sleep(1000);
+           }
         }
         Sleep(350);
     }
@@ -81,12 +99,36 @@ CVector __stdcall FireFest::GetMyOwnPos(void)
     MyPos.fZ = *(float*)(MyMatrix + 0x38);
     return MyPos;
 }
+FireFest::CClientPlayer* FireFest::GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance)
+{
+    typedef CClientPlayer* (__thiscall* pGetClosestRemotePlayer)(void* ECX, const CVector& vecTemp, float fMaxDistance);
+    static const char pattern[] = { "\x55\x8B\xEC\x83\xE4\xF8\x83\xEC\x1C\x8B" };
+    static const char mask[] = { "xxxxxxxxxx" };
+    static SigScan scan; static DWORD scannedAddress = scan.FindPattern("client.dll", pattern, mask);
+    static pGetClosestRemotePlayer callGetClosestRemotePlayer = (pGetClosestRemotePlayer)scannedAddress;
+    if (g_pClientGame == nullptr || scannedAddress == NULL) return nullptr;
+    return callGetClosestRemotePlayer(g_pClientGame, vecTemp, fMaxDistance);
+}
+void __fastcall FireFest::DoPulsePreFrame(CClientGame* ECX, void* EDX)
+{
+    HWBP::DeleteHWBP(scanAddr); g_pClientGame = ECX;
+    typedef void(__thiscall* ptrDoPulsePreFrame)(CClientGame* ECX);
+    ptrDoPulsePreFrame callDoPulsePreFrame = (ptrDoPulsePreFrame)scanAddr;
+    callDoPulsePreFrame(ECX); MessageBeep(MB_ICONERROR);
+}
+void __stdcall FireFest::InstallDoPulsePreFrameHook()
+{
+    static const char pattern[] = { "\x83\x39\x02\x75\x13\x8B\x89\x00\x00\x00\x00\x85\xC9\x74\x09\x80\x39\x00\x0F\x85\x00\x00\x00\x00\xC3" };
+    static const char mask[] = { "xxxxxxx????xxxxxxxxx????x" };
+    SigScan scan; scanAddr = scan.FindPattern("client.dll", pattern, mask);
+    if (scanAddr != NULL) HWBP::InstallHWBP(scanAddr, (DWORD)&DoPulsePreFrame);
+}
 void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)
     {
         if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && 
-        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && !hacks.TeargasEnabled) continue;
+        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && !hacks.TeargasEnabled && !hacks.ExplosionEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -149,10 +191,6 @@ void __stdcall FireFest::PedPoolParser(void)
                     {
                         if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
                         {
-                            //WEAPONTYPE_MOLOTOV -- success
-                            //WEAPONTYPE_TEARGAS --- убивает при спавне на игроке, управляемы камерой и на 0.3f отскакивают от скина быстро
-                            // может даже убить или запустить игрока WEAPONTYPE_GRENADE аналогичные
-                            //WEAPONTYPE_REMOTE_SATCHEL_CHARGE пиздит пизже и валит с ног и не дает встать
                             TargetPos.fZ -= 0.3f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(REPEAT_DELAY);
@@ -165,6 +203,22 @@ void __stdcall FireFest::PedPoolParser(void)
                             CVector direction(0.0f, 0.0f, 0.0f);
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 0.0f, &direction, nullptr);
                             Sleep(REPEAT_DELAY);
+                        }
+                    }
+                    if (hacks.ExplosionEnabled)
+                    {
+                        if (pPlayer != nullptr)
+                        {
+                            char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x28\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\xC7" };
+                            char mask[] = { "xxxxxx????xxxxxxxxxxxxx????xxxxxxxxxxxxx" };
+                            SigScan scan2; DWORD scanAddr2 = scan2.FindPattern((char*)"client.dll", pattern, mask);
+                            if (scanAddr2 != NULL)
+                            {
+                                ((void(__thiscall*)(void*, const CVector&, eExplosionType, void*))scanAddr2)
+                                ((void*)g_pClientGame, TargetPos, EXP_TYPE_TANK, pPlayer);
+                                MessageBeep(MB_ICONERROR);
+                            }
+                            hacks.ExplosionEnabled = false;
                         }
                     }
                 }
