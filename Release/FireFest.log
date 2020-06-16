@@ -1,9 +1,8 @@
 ﻿  FireFest.cpp
-  dllmain.cpp
      Создается библиотека ..\..\..\Desktop\GTA SA HOME-RP\dxgi.lib и объект ..\..\..\Desktop\GTA SA HOME-RP\dxgi.exp
   Создание кода
-  8 of 212 functions ( 3.8%) were compiled, the rest were copied from previous compilation.
-    5 functions were new in current compilation
+  4 of 208 functions ( 1.9%) were compiled, the rest were copied from previous compilation.
+    1 functions were new in current compilation
     1 functions had inline decision re-evaluated but remain unchanged
   Создание кода завершено
   FireFest.vcxproj -> C:\Users\Czynnik.WSZYSTKO-21\source\repos\FireFest\..\..\..\Desktop\GTA SA HOME-RP\dxgi.dll

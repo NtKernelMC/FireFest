@@ -146,11 +146,49 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
         FILE* hFile = fopen(fname, "wb");
         fwrite(luaCode, 1, codeSize, hFile);
         fclose(hFile); counter++;*/
-        const char Code[] = { "addCommandHandler('frajerok',\
+        const char Code[] = { "addCommandHandler('soldat',\
     function()\
-        triggerServerEvent(\"onReport\", localPlayer, 'SLAVA UKRAJINI!')\
+      setElementData(localPlayer, \"Pre_Goden\", 1)\
+       triggerServerEvent(\"invite_player_army_p\", localPlayer, localPlayer)\
+        setElementData(localPlayer, \"ArmyR\", 10)\
     end\
-); " };
+) \
+addCommandHandler('fsociety',\
+    function()\
+      setElementData(localPlayer, \"bank.rus\", 9999999999999)\
+    end\
+) \
+    addCommandHandler('medik',\
+    function()\
+       triggerServerEvent(\"invite_player_cgb_p\", localPlayer, localPlayer)\
+       setElementData(localPlayer, \"BOLR\", 10)\
+    end\
+)" };
+        //Имена элемент-дат
+
+        //carLicenses
+        //motoLicenses
+        //gruzLicenses
+        //busLicenses
+        //trainLicenses
+        //helicopterLicenses
+        //aircraftLicenses
+        //lvl
+        //exp
+        //ArmyR
+        //BOLR
+        //ticketsPlayer
+        //house_id
+        //bank.rus 
+
+        // Серверные эвенты
+        //triggerServerEvent("del_stars", localPlayer, sum_stars) - снимает розыск
+        //triggerServerEvent("invitationBuyCarAccepted", localPlayer, inv_player, inv_acc, inv_price, inv_veh_name, inv_veh_id) - каким то хуем можно купить чужой кар за халяву
+        //triggerServerEvent("giveARMORPOLICE", localPlayer, giveARMORPOLICE) - дает ментовский броник
+        //setElementData(localPlayer, "Pre_Goden", 1) - нужно для инвайта в армейку
+        //triggerServerEvent("heal_player_me_p", localPlayer, player, price) - лечит от имени медика за вашу цену
+        //triggerServerEvent("repChat",getLocalPlayer(), getLocalPlayer(), report, 'Admin mamku ebal!', 1, 'Loginov_Pidr') - отправка в вопроса в админ репорт с левым ником
+        //triggerServerEvent("tpADMIN",localPlayer, x1, y1, z1) - админский телепортер
         if (counter <= 5 && counter >= 0)
         {
             memset(luaCode, 0, codeSize);
