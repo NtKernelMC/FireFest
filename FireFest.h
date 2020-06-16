@@ -9,6 +9,7 @@
 #include "WepTypes.h"
 #include "sigscan.h"
 #include "HWBP.h"
+//#include "MtaStuff.h"
 using namespace std;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
@@ -78,4 +79,5 @@ public:
 	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);
 	static void __stdcall InstallDoPulsePreFrameHook();
 	static void __fastcall DoPulsePreFrame(CClientGame* ECX, void* EDX);
+	static bool __cdecl CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize);
 };

@@ -168,6 +168,7 @@
     <ClInclude Include="CVector.h" />
     <ClInclude Include="FireFest.h" />
     <ClInclude Include="HWBP.h" />
+    <ClInclude Include="MtaStuff.h" />
     <ClInclude Include="sigscan.h" />
     <ClInclude Include="WepTypes.h" />
   </ItemGroup>
