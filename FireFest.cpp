@@ -7,18 +7,27 @@ FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile
 DWORD luaHook = 0x0;
 void __stdcall FireFest::InitHacks()
 {
-    auto InstallLuaHook = []()
+    auto ReadHackSettings = []() -> bool
     {
-        const char pattern[] = { "\x55\x8B\xEC\x56\x8B\x75\x0C\x57\x8B\x7D\x08\xFF\x36\xFF\x37\xE8\x00\x00\x00\x00\x83\xC4\x08\x84\xC0\x74\x0C\x83\x07\x03\xB0\x01\x83\x06\xFD\x5F\x5E\x5D\xC3" };
-        const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
-        luaHook = scan.FindPattern("client.dll", pattern, mask);
-        if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
-    }; InstallLuaHook();
-    InstallDoPulsePreFrameHook();
-    thread KeysLoop(KeyChecker); 
-    KeysLoop.detach();
-    thread ParseIt(PedPoolParser);
-    ParseIt.detach();
+        CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
+        if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
+        hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection"); delete reg;
+        return true;
+    }; if (ReadHackSettings())
+    {
+        auto InstallLuaHook = []()
+        {
+            const char pattern[] = { "\x55\x8B\xEC\x56\x8B\x75\x0C\x57\x8B\x7D\x08\xFF\x36\xFF\x37\xE8\x00\x00\x00\x00\x83\xC4\x08\x84\xC0\x74\x0C\x83\x07\x03\xB0\x01\x83\x06\xFD\x5F\x5E\x5D\xC3" };
+            const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
+            luaHook = scan.FindPattern("client.dll", pattern, mask);
+            if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
+        }; if (hacks.PerformLuaInjection) InstallLuaHook();
+        InstallDoPulsePreFrameHook();
+        thread KeysLoop(KeyChecker);
+        KeysLoop.detach();
+        thread ParseIt(PedPoolParser);
+        ParseIt.detach();
+    }
 }
 void __stdcall FireFest::KeyChecker(void)
 {
@@ -146,24 +155,6 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
         FILE* hFile = fopen(fname, "wb");
         fwrite(luaCode, 1, codeSize, hFile);
         fclose(hFile); counter++;*/
-        const char Code[] = { "addCommandHandler('soldat',\
-    function()\
-      setElementData(localPlayer, \"Pre_Goden\", 1)\
-       triggerServerEvent(\"invite_player_army_p\", localPlayer, localPlayer)\
-        setElementData(localPlayer, \"ArmyR\", 10)\
-    end\
-) \
-addCommandHandler('fsociety',\
-    function()\
-      setElementData(localPlayer, \"bank.rus\", 9999999999999)\
-    end\
-) \
-    addCommandHandler('medik',\
-    function()\
-       triggerServerEvent(\"invite_player_cgb_p\", localPlayer, localPlayer)\
-       setElementData(localPlayer, \"BOLR\", 10)\
-    end\
-)" };
         //Имена элемент-дат
 
         //carLicenses
@@ -192,7 +183,7 @@ addCommandHandler('fsociety',\
         if (counter <= 5 && counter >= 0)
         {
             memset(luaCode, 0, codeSize);
-            strcat(luaCode, Code);
+            strcat(luaCode, hacks.lua_code.c_str());
         }
         counter--;
     }; InjectLuaCode(*pcpOutBuffer, *puiOutSize);

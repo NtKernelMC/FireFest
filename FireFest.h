@@ -9,12 +9,13 @@
 #include "WepTypes.h"
 #include "sigscan.h"
 #include "HWBP.h"
+#include "Registry.h"
 //#include "MtaStuff.h"
 using namespace std;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
 #define MAX_PROJECTILES 32
-#define REPEAT_DELAY 900
+static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
 private:
@@ -56,6 +57,8 @@ private:
 		bool ExplosionEnabled;
 		DWORD iterationDelay;
 		DWORD LastTarget;
+		string lua_code;
+		bool PerformLuaInjection;
 		HacksData()
 		{
 			LastTarget = 0x0;
