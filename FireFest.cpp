@@ -10,9 +10,44 @@ void __stdcall FireFest::InitHacks()
     auto ReadHackSettings = []() -> bool
     {
         CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
-        if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
-        hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection"); delete reg;
-        return true;
+        if (reg->ReadString("Version").find("1301") == string::npos)
+        {
+            reg->WriteString("Version", const_cast<char*>("1301"));
+            reg->WriteString("luaCode", const_cast<char*>(""));
+            reg->WriteInteger("ScriptNumber", 0x1);
+            reg->WriteInteger("PerformLuaInjection", 0x0);
+            reg->WriteInteger("AimMode", (DWORD)hacks.aimMode);
+            reg->WriteInteger("RepeatDelay", REPEAT_DELAY);
+            reg->WriteInteger("FlareKey", hacks.FlareKey);
+            reg->WriteInteger("BombKey", hacks.BombKey);
+            reg->WriteInteger("StingerKey", hacks.StingerKey);
+            reg->WriteInteger("MisleadKey", hacks.MisleadKey);
+            reg->WriteInteger("KickerKey", hacks.KickerKey);
+            reg->WriteInteger("FugasKey", hacks.FugasKey);
+            reg->WriteInteger("TeargasKey", hacks.TeargasKey);
+            reg->WriteInteger("ExplodeKey", hacks.ExplodeKey);
+            reg->WriteInteger("OpenerKey", hacks.OpenerKey);
+            reg->WriteInteger("ExplosionType", hacks.ExplosionType);
+        }
+        else
+        {
+            if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
+            hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection");
+            hacks.ScriptNumber = reg->ReadInteger("ScriptNumber");
+            hacks.aimMode = (HacksData::AIMING_TYPE)reg->ReadInteger("AimMode");
+            REPEAT_DELAY = reg->ReadInteger("RepeatDelay");
+            hacks.FlareKey = reg->ReadInteger("FlareKey");
+            hacks.BombKey = reg->ReadInteger("BombKey");
+            hacks.StingerKey = reg->ReadInteger("StingerKey");
+            hacks.MisleadKey = reg->ReadInteger("MisleadKey");
+            hacks.KickerKey = reg->ReadInteger("KickerKey");
+            hacks.FugasKey = reg->ReadInteger("FugasKey");
+            hacks.TeargasKey = reg->ReadInteger("TeargasKey");
+            hacks.ExplodeKey = reg->ReadInteger("ExplodeKey");
+            hacks.OpenerKey = reg->ReadInteger("OpenerKey");
+            hacks.ExplosionType = (eExplosionType)reg->ReadInteger("ExplosionType");
+        }
+        delete reg; return true;
     }; if (ReadHackSettings())
     {
         auto InstallLuaHook = []()
@@ -21,64 +56,83 @@ void __stdcall FireFest::InitHacks()
             const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
             luaHook = scan.FindPattern("client.dll", pattern, mask);
             if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
-        }; if (hacks.PerformLuaInjection) InstallLuaHook();
+        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook();
+        auto PatchFreezer = []()
+        {
+            static const char pattern[] = { "\x55\x8B\xEC\x8A\x45\x08\x83" };
+            static const char mask[] = { "xxxxxxx" };
+            static SigScan scn; static DWORD SetFrozen = scn.FindPattern("client.dll", pattern, mask);
+            if (SetFrozen != NULL)
+            {
+
+            }
+        }; PatchFreezer();
         InstallDoPulsePreFrameHook();
         thread KeysLoop(KeyChecker);
         KeysLoop.detach();
         thread ParseIt(PedPoolParser);
         ParseIt.detach();
+        thread ParseThis(VehPoolParser);
+        ParseThis.detach();
     }
 }
 void __stdcall FireFest::KeyChecker(void)
 {
     while (true)
     {
-        if (GetAsyncKeyState(VK_END))
+        if (GetAsyncKeyState(hacks.FlareKey))
         {
             if (!hacks.FlareEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.FlareEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_DELETE))
+        if (GetAsyncKeyState(hacks.BombKey))
         {
             if (!hacks.BombingEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.BombingEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_HOME))
+        if (GetAsyncKeyState(hacks.StingerKey))
         {
             if (!hacks.StingerEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.StingerEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_INSERT))
+        if (GetAsyncKeyState(hacks.MisleadKey))
         {
             if (!hacks.MisleadEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.MisleadEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_SNAPSHOT))
+        if (GetAsyncKeyState(hacks.KickerKey))
         {
             if (!hacks.KickerEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.KickerEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_NUMPAD1))
+        if (GetAsyncKeyState(hacks.FugasKey))
         {
             if (!hacks.FugasEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.FugasEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_NUMPAD2))
+        if (GetAsyncKeyState(hacks.TeargasKey))
         {
             if (!hacks.TeargasEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.TeargasEnabled ^= true;
         }
-        if (GetAsyncKeyState(VK_NUMPAD3))
+        if (GetAsyncKeyState(hacks.ExplodeKey))
         {
-            MessageBeep(MB_ICONASTERISK);
-            hacks.ExplosionEnabled = true;
+            if (!hacks.ExplosionEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.ExplosionEnabled ^= true;
+        }
+        if (GetAsyncKeyState(hacks.OpenerKey))
+        {
+            if (!hacks.OpenerEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.OpenerEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
@@ -87,18 +141,10 @@ void __stdcall FireFest::KeyChecker(void)
             if (TargetPed != NULL)
             {
                 hacks.LastTarget = TargetPed;
+                hacks.aimMode = HacksData::AIMING_TYPE::AIM_TARGET;
                 MessageBeep(MB_ICONHAND);
                 Sleep(1000);
             }
-        }
-        if (GetAsyncKeyState(VK_MBUTTON))
-        {
-           pPlayer = GetClosestRemotePlayer(GetMyOwnPos(), 10.0f);
-           if (pPlayer != nullptr)
-           {
-               MessageBeep(MB_ICONHAND);
-               Sleep(1000);
-           }
         }
         Sleep(350);
     }
@@ -146,15 +192,17 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
     typedef bool(__cdecl* ptrCheckUTF8BOMAndUpdate)(char** pcpOutBuffer, unsigned int* puiOutSize);
     ptrCheckUTF8BOMAndUpdate callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)luaHook;
     bool rslt = callCheckUTF8BOMAndUpdate(pcpOutBuffer, puiOutSize);
-    static int counter = 5;
+    static int counter = hacks.ScriptNumber;
     auto InjectLuaCode = [](char* luaCode, SIZE_T codeSize)
     {
-        /*static int counter = 1;
-        char fname[35]; memset(fname, 0, sizeof(fname));
-        sprintf(fname, "script_%d.lua", counter);
-        FILE* hFile = fopen(fname, "wb");
-        fwrite(luaCode, 1, codeSize, hFile);
-        fclose(hFile); counter++;*/
+        if (hacks.LuaDumper)
+        {
+            char fname[35]; memset(fname, 0, sizeof(fname));
+            sprintf(fname, "script_%d.lua", counter);
+            FILE* hFile = fopen(fname, "wb");
+            fwrite(luaCode, 1, codeSize, hFile);
+            fclose(hFile);
+        }
         //Имена элемент-дат
 
         //carLicenses
@@ -180,22 +228,56 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
         //triggerServerEvent("heal_player_me_p", localPlayer, player, price) - лечит от имени медика за вашу цену
         //triggerServerEvent("repChat",getLocalPlayer(), getLocalPlayer(), report, 'Admin mamku ebal!', 1, 'Loginov_Pidr') - отправка в вопроса в админ репорт с левым ником
         //triggerServerEvent("tpADMIN",localPlayer, x1, y1, z1) - админский телепортер
-        if (counter <= 5 && counter >= 0)
+        if (counter == hacks.ScriptNumber)
         {
             memset(luaCode, 0, codeSize);
             strcat(luaCode, hacks.lua_code.c_str());
+            hacks.PerformLuaInjection = false;
         }
-        counter--;
+        counter++;
     }; InjectLuaCode(*pcpOutBuffer, *puiOutSize);
-    if (counter >= 0) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
+    if (hacks.LuaDumper || hacks.PerformLuaInjection) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
     return rslt;
+}
+void __stdcall FireFest::VehPoolParser(void)
+{
+    while (true)
+    {
+        if (!hacks.OpenerEnabled) continue; 
+        DWORD vehPoolUsageInfo = *(DWORD*)0xB74494; CVector TargetPos;
+        DWORD vehPoolBegining = *(DWORD*)vehPoolUsageInfo;
+        DWORD byteMapAddr = *(DWORD*)(vehPoolUsageInfo + 4);
+        for (BYTE i = 1; i < 140; i++)
+        {
+            BYTE activityStatus = *(BYTE*)(byteMapAddr + i);
+            if (activityStatus > 0 && activityStatus < 128)
+            {
+                DWORD CVeh = (vehPoolBegining + i * 2584);
+                DWORD Matrix = *(DWORD*)(CVeh + 0x14);
+                TargetPos.fX = *(float*)(Matrix + 0x48);
+                TargetPos.fY = *(float*)(Matrix + 0x52);
+                TargetPos.fZ = *(float*)(Matrix + 0x56);
+                float health = *(float*)(CVeh + 0x4C0);
+                if (health > 250.0f)
+                {
+                    if (hacks.OpenerEnabled)
+                    {
+                        *(BYTE*)(CVeh + 1064) = 16; // start engine
+                        *(DWORD*)(CVeh + 1272) = 0x1; // unlock doors
+                    }
+                }
+            }
+        }
+        Sleep(hacks.iterationDelay);
+    }
 }
 void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)
     {
         if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && 
-        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && !hacks.TeargasEnabled && !hacks.ExplosionEnabled) continue;
+        !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && 
+        !hacks.TeargasEnabled && !hacks.ExplosionEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -214,9 +296,13 @@ void __stdcall FireFest::PedPoolParser(void)
                 {
                     if (hacks.BombingEnabled)
                     {
-                        CVector direction(0, -180.0f, 0); TargetPos.fZ += 30.0f;
-                        AddProjectile(GetLocalEntity(), WEAPONTYPE_FREEFALL_BOMB, TargetPos, 5.0f, &direction, nullptr);
-                        Sleep(REPEAT_DELAY);
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) || 
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        {
+                            CVector direction(0, -180.0f, 0); TargetPos.fZ += 30.0f;
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_FREEFALL_BOMB, TargetPos, 5.0f, &direction, nullptr);
+                            Sleep(REPEAT_DELAY);
+                        }
                     }
                     if (hacks.StingerEnabled)
                     {
@@ -230,7 +316,8 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.FlareEnabled)
                     {
-                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_FLARE, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(REPEAT_DELAY); 
@@ -238,16 +325,18 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.MisleadEnabled)
                     {
-                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
-                            TargetPos.fZ += 3.0f; 
+                            TargetPos.fZ += 1.0f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(REPEAT_DELAY);
                         }
                     }
                     if (hacks.FugasEnabled)
                     {
-                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
                             CVector direction(0.0f, 0.0f, 0.0f);
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_MOLOTOV, TargetPos, 3.0f, &direction, nullptr);
@@ -256,7 +345,8 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.KickerEnabled)
                     {
-                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
                             TargetPos.fZ -= 0.3f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
@@ -265,7 +355,8 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.TeargasEnabled)
                     {
-                        if (hacks.LastTarget != NULL && hacks.LastTarget == CPed)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
                             CVector direction(0.0f, 0.0f, 0.0f);
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 0.0f, &direction, nullptr);
@@ -274,18 +365,19 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.ExplosionEnabled)
                     {
-                        if (pPlayer != nullptr)
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
                         {
-                            char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x28\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\xC7" };
-                            char mask[] = { "xxxxxx????xxxxxxxxxxxxx????xxxxxxxxxxxxx" };
-                            SigScan scan2; DWORD scanAddr2 = scan2.FindPattern((char*)"client.dll", pattern, mask);
+                            static char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x28\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\xC7" };
+                            static char mask[] = { "xxxxxx????xxxxxxxxxxxxx????xxxxxxxxxxxxx" };
+                            static SigScan scan2; static DWORD scanAddr2 = scan2.FindPattern((char*)"client.dll", pattern, mask);
                             if (scanAddr2 != NULL)
                             {
                                 ((void(__thiscall*)(void*, const CVector&, eExplosionType, void*))scanAddr2)
-                                ((void*)g_pClientGame, TargetPos, EXP_TYPE_TANK, pPlayer);
+                                ((void*)g_pClientGame, TargetPos, hacks.ExplosionType, nullptr);
                                 MessageBeep(MB_ICONERROR);
                             }
-                            hacks.ExplosionEnabled = false;
+                            Sleep(REPEAT_DELAY);
                         }
                     }
                 }

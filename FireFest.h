@@ -47,6 +47,15 @@ private:
 	static ptrAddProjectile AddProjectile;
 	struct HacksData
 	{
+		enum AIMING_TYPE
+		{
+			AIM_MASSIVE = 1,
+			AIM_TARGET = 2
+		};
+		CVector CamPos;
+		DWORD ScriptNumber;
+		AIMING_TYPE aimMode;
+		bool LuaDumper;
 		bool FlareEnabled;
 		bool BombingEnabled;
 		bool StingerEnabled;
@@ -55,13 +64,19 @@ private:
 		bool FugasEnabled;
 		bool TeargasEnabled;
 		bool ExplosionEnabled;
+		bool OpenerEnabled;
+		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, OpenerKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		string lua_code;
+		eExplosionType ExplosionType;
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			LastTarget = 0x0;
+			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK;
+			LastTarget = 0x0; ScriptNumber = 0x1; LuaDumper = false;
+			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
+			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3, OpenerKey = VK_NUMPAD4;
 			FlareEnabled = false;
 			BombingEnabled = false;
 			StingerEnabled = false;
@@ -70,6 +85,7 @@ private:
 			FugasEnabled = false;
 			TeargasEnabled = false;
 			ExplosionEnabled = false;
+			OpenerEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;
@@ -77,6 +93,7 @@ public:
 	static void __stdcall InitHacks();
 	static void __stdcall KeyChecker(void);
 	static void __stdcall PedPoolParser(void);
+	static void __stdcall VehPoolParser(void);
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
 	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);

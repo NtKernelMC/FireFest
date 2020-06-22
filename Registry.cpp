@@ -142,7 +142,7 @@ void CEasyRegistry::WriteString(LPCSTR lpName, LPSTR lpString, ...)
 std::string CEasyRegistry::ReadString(LPCSTR lpName)
 {
 	char szStr[0x1000];
-	no_error = GetRegister(lpName, REG_SZ, szStr, 0x1000);
+	no_error = GetRegister(lpName, REG_MULTI_SZ, szStr, 0x1000);
 	return szStr;
 }
 
