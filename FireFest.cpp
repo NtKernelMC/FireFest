@@ -27,8 +27,9 @@ void __stdcall FireFest::InitHacks()
         CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
         if (reg->ReadString("Version").find("1303") == string::npos)
         {
-            reg->WriteString("Version", const_cast<char*>("1303"));
+            reg->WriteString("Version", const_cast<char*>("1304"));
             reg->WriteString("luaCode", const_cast<char*>(""));
+            reg->WriteInteger("LuaDumper", (int)hacks.LuaDumper);
             reg->WriteInteger("ScriptNumber", 0x1);
             reg->WriteInteger("PerformLuaInjection", 0x0);
             reg->WriteInteger("AimMode", (DWORD)hacks.aimMode);
@@ -41,7 +42,6 @@ void __stdcall FireFest::InitHacks()
             reg->WriteInteger("FugasKey", hacks.FugasKey);
             reg->WriteInteger("TeargasKey", hacks.TeargasKey);
             reg->WriteInteger("ExplodeKey", hacks.ExplodeKey);
-            reg->WriteInteger("OpenerKey", hacks.OpenerKey);
             reg->WriteInteger("ExplosionType", hacks.ExplosionType);
             reg->WriteInteger("AntiVehicleFreeze", hacks.AntiFreeze);
             reg->WriteInteger("AntiDoorsLock", hacks.AntiLock);
@@ -49,6 +49,7 @@ void __stdcall FireFest::InitHacks()
         }
         else
         {
+            hacks.LuaDumper = (bool)reg->ReadInteger("LuaDumper");
             if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
             hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection");
             hacks.ScriptNumber = reg->ReadInteger("ScriptNumber");
@@ -62,7 +63,6 @@ void __stdcall FireFest::InitHacks()
             hacks.FugasKey = reg->ReadInteger("FugasKey");
             hacks.TeargasKey = reg->ReadInteger("TeargasKey");
             hacks.ExplodeKey = reg->ReadInteger("ExplodeKey");
-            hacks.OpenerKey = reg->ReadInteger("OpenerKey");
             hacks.ExplosionType = (eExplosionType)reg->ReadInteger("ExplosionType");
             hacks.AntiFreeze = (bool)reg->ReadInteger("AntiVehicleFreeze");
             hacks.AntiLock = (bool)reg->ReadInteger("AntiDoorsLock");

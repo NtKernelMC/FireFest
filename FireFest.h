@@ -75,7 +75,7 @@ private:
 		bool AntiFreeze;
 		bool AntiLock;
 		bool AntiKeys;
-		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, OpenerKey;
+		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		string lua_code;
