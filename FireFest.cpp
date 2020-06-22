@@ -3,16 +3,26 @@ FireFest::HacksData FireFest::hacks;
 DWORD FireFest::scanAddr = 0x0;
 FireFest::CClientGame* FireFest::g_pClientGame = nullptr;
 FireFest::CClientPlayer* FireFest::pPlayer = nullptr;
+FireFest::callSetFrozen FireFest::pSetFrozen = (FireFest::callSetFrozen)0x0;
+FireFest::callSetLocked FireFest::pSetLocked = (FireFest::callSetLocked)0x0;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
 DWORD luaHook = 0x0;
+void __fastcall FireFest::SetFrozen(void* ECX, void* EDX, bool freeze)
+{
+    pSetFrozen(ECX, false);
+}
+void __fastcall FireFest::SetLocked(void* ECX, void* EDX, bool lock)
+{
+    pSetLocked(ECX, false);
+}
 void __stdcall FireFest::InitHacks()
 {
     auto ReadHackSettings = []() -> bool
     {
         CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
-        if (reg->ReadString("Version").find("1301") == string::npos)
+        if (reg->ReadString("Version").find("1302") == string::npos)
         {
-            reg->WriteString("Version", const_cast<char*>("1301"));
+            reg->WriteString("Version", const_cast<char*>("1302"));
             reg->WriteString("luaCode", const_cast<char*>(""));
             reg->WriteInteger("ScriptNumber", 0x1);
             reg->WriteInteger("PerformLuaInjection", 0x0);
@@ -28,6 +38,8 @@ void __stdcall FireFest::InitHacks()
             reg->WriteInteger("ExplodeKey", hacks.ExplodeKey);
             reg->WriteInteger("OpenerKey", hacks.OpenerKey);
             reg->WriteInteger("ExplosionType", hacks.ExplosionType);
+            reg->WriteInteger("AntiVehicleFreeze", hacks.AntiFreeze);
+            reg->WriteInteger("AntiDoorsLock", hacks.AntiLock);
         }
         else
         {
@@ -46,6 +58,8 @@ void __stdcall FireFest::InitHacks()
             hacks.ExplodeKey = reg->ReadInteger("ExplodeKey");
             hacks.OpenerKey = reg->ReadInteger("OpenerKey");
             hacks.ExplosionType = (eExplosionType)reg->ReadInteger("ExplosionType");
+            hacks.AntiFreeze = (bool)reg->ReadInteger("AntiVehicleFreeze");
+            hacks.AntiLock = (bool)reg->ReadInteger("AntiDoorsLock");
         }
         delete reg; return true;
     }; if (ReadHackSettings())
@@ -56,24 +70,36 @@ void __stdcall FireFest::InitHacks()
             const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
             luaHook = scan.FindPattern("client.dll", pattern, mask);
             if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
-        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook();
+        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook(); MH_Initialize();
+        auto PatchLocker = []()
+        {
+            static const char pattern[] = { "\x55\x8B\xEC\x56\x8B\xF1\x8B\x8E\xA4\x01\x00\x00\x85\xC9\x74\x19\x8B\x01\x53\x8B\x5D\x08\x53\xFF\x90\x94" };
+            static const char mask[] = { "xxxxxxxxxxxxxxxxxxxxxxxxxx" };
+            static SigScan scn; static DWORD Locker = scn.FindPattern("client.dll", pattern, mask);
+            if (Locker != NULL)
+            {
+                MH_CreateHook((PVOID)Locker, &SetLocked, reinterpret_cast<PVOID*>(&pSetLocked));
+                MH_EnableHook(MH_ALL_HOOKS);
+            }
+        }; if (hacks.AntiLock) PatchLocker();
         auto PatchFreezer = []()
         {
             static const char pattern[] = { "\x55\x8B\xEC\x8A\x45\x08\x83" };
             static const char mask[] = { "xxxxxxx" };
-            static SigScan scn; static DWORD SetFrozen = scn.FindPattern("client.dll", pattern, mask);
-            if (SetFrozen != NULL)
+            static SigScan scn; static DWORD Frozen = scn.FindPattern("client.dll", pattern, mask);
+            if (Frozen != NULL)
             {
-
+                MH_CreateHook((PVOID)Frozen, &SetFrozen, reinterpret_cast<PVOID*>(&pSetFrozen));
+                MH_EnableHook(MH_ALL_HOOKS);
             }
-        }; PatchFreezer();
+        }; if (hacks.AntiFreeze) PatchFreezer();
         InstallDoPulsePreFrameHook();
         thread KeysLoop(KeyChecker);
         KeysLoop.detach();
         thread ParseIt(PedPoolParser);
         ParseIt.detach();
-        thread ParseThis(VehPoolParser);
-        ParseThis.detach();
+        //thread ParseThis(VehPoolParser);
+        //ParseThis.detach();
     }
 }
 void __stdcall FireFest::KeyChecker(void)
@@ -127,12 +153,6 @@ void __stdcall FireFest::KeyChecker(void)
             if (!hacks.ExplosionEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.ExplosionEnabled ^= true;
-        }
-        if (GetAsyncKeyState(hacks.OpenerKey))
-        {
-            if (!hacks.OpenerEnabled) MessageBeep(MB_ICONASTERISK);
-            else MessageBeep(MB_ICONERROR);
-            hacks.OpenerEnabled ^= true;
         }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
@@ -239,11 +259,10 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
     if (hacks.LuaDumper || hacks.PerformLuaInjection) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
     return rslt;
 }
-void __stdcall FireFest::VehPoolParser(void)
+/*void __stdcall FireFest::VehPoolParser(void)
 {
     while (true)
     {
-        if (!hacks.OpenerEnabled) continue; 
         DWORD vehPoolUsageInfo = *(DWORD*)0xB74494; CVector TargetPos;
         DWORD vehPoolBegining = *(DWORD*)vehPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(vehPoolUsageInfo + 4);
@@ -270,7 +289,7 @@ void __stdcall FireFest::VehPoolParser(void)
         }
         Sleep(hacks.iterationDelay);
     }
-}
+}*/
 void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)

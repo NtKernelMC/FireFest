@@ -11,6 +11,8 @@
 #include "HWBP.h"
 #include "Registry.h"
 //#include "MtaStuff.h"
+#include "MinHook.h"
+#pragma comment(lib, "libMinHook.x86.lib")
 using namespace std;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
@@ -44,6 +46,10 @@ private:
 	static CClientPlayer* pPlayer;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
+	typedef void(__thiscall* callSetFrozen)(void* ECX, bool freeze);
+	static callSetFrozen pSetFrozen;
+	typedef void(__thiscall* callSetLocked)(void* ECX, bool freeze);
+	static callSetLocked pSetLocked;
 	static ptrAddProjectile AddProjectile;
 	struct HacksData
 	{
@@ -64,7 +70,8 @@ private:
 		bool FugasEnabled;
 		bool TeargasEnabled;
 		bool ExplosionEnabled;
-		bool OpenerEnabled;
+		bool AntiFreeze;
+		bool AntiLock;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, OpenerKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
@@ -73,10 +80,11 @@ private:
 		bool PerformLuaInjection;
 		HacksData()
 		{
+			AntiLock = true; AntiFreeze = true;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK;
 			LastTarget = 0x0; ScriptNumber = 0x1; LuaDumper = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
-			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3, OpenerKey = VK_NUMPAD4;
+			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
 			FlareEnabled = false;
 			BombingEnabled = false;
 			StingerEnabled = false;
@@ -85,7 +93,6 @@ private:
 			FugasEnabled = false;
 			TeargasEnabled = false;
 			ExplosionEnabled = false;
-			OpenerEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;
@@ -93,11 +100,13 @@ public:
 	static void __stdcall InitHacks();
 	static void __stdcall KeyChecker(void);
 	static void __stdcall PedPoolParser(void);
-	static void __stdcall VehPoolParser(void);
+	//static void __stdcall VehPoolParser(void);
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
 	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);
 	static void __stdcall InstallDoPulsePreFrameHook();
 	static void __fastcall DoPulsePreFrame(CClientGame* ECX, void* EDX);
 	static bool __cdecl CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize);
+	static void __fastcall SetFrozen(void *ECX, void *EDX, bool freeze);
+	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
 };
