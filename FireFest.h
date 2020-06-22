@@ -50,6 +50,8 @@ private:
 	static callSetFrozen pSetFrozen;
 	typedef void(__thiscall* callSetLocked)(void* ECX, bool freeze);
 	static callSetLocked pSetLocked;
+	typedef void(__thiscall* callSetEngine)(void* ECX, bool freeze);
+	static callSetEngine pSetEngine;
 	static ptrAddProjectile AddProjectile;
 	struct HacksData
 	{
@@ -72,6 +74,7 @@ private:
 		bool ExplosionEnabled;
 		bool AntiFreeze;
 		bool AntiLock;
+		bool AntiKeys;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, OpenerKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
@@ -80,7 +83,7 @@ private:
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			AntiLock = true; AntiFreeze = true;
+			AntiLock = true; AntiFreeze = true; AntiKeys = true;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK;
 			LastTarget = 0x0; ScriptNumber = 0x1; LuaDumper = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
@@ -109,4 +112,5 @@ public:
 	static bool __cdecl CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize);
 	static void __fastcall SetFrozen(void *ECX, void *EDX, bool freeze);
 	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
+	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
 };
