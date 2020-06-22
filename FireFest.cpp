@@ -25,7 +25,7 @@ void __stdcall FireFest::InitHacks()
     auto ReadHackSettings = []() -> bool
     {
         CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
-        if (reg->ReadString("Version").find("1303") == string::npos)
+        if (reg->ReadString("Version").find("1304") == string::npos)
         {
             reg->WriteString("Version", const_cast<char*>("1304"));
             reg->WriteString("luaCode", const_cast<char*>(""));
