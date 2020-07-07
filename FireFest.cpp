@@ -6,8 +6,49 @@ FireFest::CClientPlayer* FireFest::pPlayer = nullptr;
 FireFest::callSetFrozen FireFest::pSetFrozen = (FireFest::callSetFrozen)0x0;
 FireFest::callSetLocked FireFest::pSetLocked = (FireFest::callSetLocked)0x0;
 FireFest::callSetEngine FireFest::pSetEngine = (FireFest::callSetEngine)0x0;
+FireFest::callSetCustomData FireFest::ptrSetCustomData = (FireFest::callSetCustomData)0x0;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
-DWORD luaHook = 0x0;
+DWORD Addr = 0x0;
+//const char value_d[] = { "AA0FC7F9BCC25560B1136D289701B9EB9E7E020792EFD50E9FC008FB83E4CF06" };
+//const char value_d[] = { "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" };
+DWORD luaHook = 0x0; //DWORD valAddr = 0x0;
+void LogInFile(const char* log, ...)
+{
+    FILE* hFile = fopen("!0_ElementsDump.log", "a+");
+    if (hFile)
+    {
+        va_list arglist; va_start(arglist, log);
+        vfprintf(hFile, log, arglist);
+        fclose(hFile); va_end(arglist);
+    }
+}
+/*char* reg_str = nullptr; //F819:GB2B:3:3G1G63888766:4DD2D63
+__declspec(naked) void __stdcall FireFest::SpoofWQL()
+{
+    //__asm lea edi, reg_str
+    //__asm mov DWORD PTR DS : [EBX + 0x4], edi
+    __asm mov edi, DWORD PTR DS:[EBX + 0x4]
+    __asm mov valAddr, edi
+    reg_str = (char*)valAddr;
+    LogInFile("Pure Serial (Unique #1): %s\n", reg_str);
+    HWBP::DeleteHWBP(Addr);
+    __asm jmp Addr
+}
+const char* crypted_s = "F819:GB2B:3:3G1G63888766:4DD2D63"; 
+__declspec(naked) void __stdcall EncryptedSerial()
+{
+    __asm mov ebx, crypted_s
+    __asm mov valAddr, ebx
+    crypted_s = (char*)valAddr;
+    LogInFile("Encrypted Serial (Unique #2): %s\n", crypted_s);
+    HWBP::DeleteHWBP(Addr2);
+    __asm jmp Addr2
+}*/
+void __fastcall FireFest::SetCustomData(void* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized)
+{
+    ptrSetCustomData(ECX, szName, Variable, bSynchronized);
+    LogInFile("ElementData: %s\n", szName);
+}
 void __fastcall FireFest::SetFrozen(void* ECX, void* EDX, bool freeze)
 {
     pSetFrozen(ECX, false);
@@ -22,16 +63,48 @@ void __fastcall FireFest::SetEngine(void* ECX, void* EDX, bool status)
 }
 void __stdcall FireFest::InitHacks()
 {
+    MH_Initialize();
+    /*auto InstallWmiHook = []()
+    {
+        //Pattern: \x57\x53\x8D\x4D\xA8\xE8\x00\x00\x00\x00\x53\xE8\x00\x00\x00\x00\x8B\x55
+        //Mask: xxxxxx????xx????xx
+        //RVA: 0x1A058B | Possible HDD get
+        //"F819:GB2B:3:3G1G63888766:4DD2D63"
+        //2EGE69GE:EB6E3E11D9FD7G4E4183:53 setString 1,"2EGE69GE:EB6E3E11D9FD7G4E4183:53"
+        //mod.party(dis.branchdest(cip)) == 1 
+        //Found at 0x{p:cip}
+        //cndsteroids.ismystring(eax, $ANSI, 1) || cndsteroids.ismystring(ebx, $ANSI, 1) || cndsteroids.ismystring(ecx, $ANSI, 1) || cndsteroids.ismystring(edx, $ANSI, 1) || cndsteroids.ismystring(ebp, $ANSI, 1) || cndsteroids.ismystring(esi, $ANSI, 1) || cndsteroids.ismystring(edi, $ANSI, 1)
+        while (!GetModuleHandleA("netc.dll")) { Sleep(10); }
+        const char pattern[] = { "\x8D\x7B\x04\x68" };
+        const char mask[] = { "xxxx" };
+        SigScan scn; Addr = scn.FindPattern("netc.dll", pattern, mask);
+        if (Addr != NULL)
+        {
+            ptrSpoofWQL = (callSpoofWQL)Addr;
+            //HWBP::InstallHWBP(Addr, (DWORD)&SpoofWQL);
+            //MH_CreateHook((PVOID)Addr, &SpoofWQL, reinterpret_cast<PVOID*>(&ptrSpoofWQL));
+            //MH_EnableHook(MH_ALL_HOOKS);
+        }
+        const char pattern2[] = { "\x57\x53\x8D\x4D\xA8\xE8\x00\x00\x00\x00\x53\xE8\x00\x00\x00\x00\x8B\x55" };
+        const char mask2[] = { "xxxxxx????xx????xx" };
+        Addr2 = scn.FindPattern("netc.dll", pattern2, mask2);
+        if (Addr2 != NULL)
+        {
+            HWBP::InstallHWBP(Addr2, (DWORD)&EncryptedSerial);
+        }
+    }; InstallWmiHook();*/
+    while (!GetModuleHandleA("client.dll")) { Sleep(10); }
     auto ReadHackSettings = []() -> bool
     {
         CEasyRegistry* reg = new CEasyRegistry(HKEY_CURRENT_USER, "Software\\FireFest", true);
-        if (reg->ReadString("Version").find("1304") == string::npos)
+        if (reg->ReadString("Version").find(HACK_BUILD_VER) == string::npos)
         {
-            reg->WriteString("Version", const_cast<char*>("1304"));
+            reg->WriteString("Version", const_cast<char*>(HACK_BUILD_VER));
             reg->WriteString("luaCode", const_cast<char*>(""));
             reg->WriteInteger("LuaDumper", (int)hacks.LuaDumper);
             reg->WriteInteger("ScriptNumber", 0x1);
             reg->WriteInteger("PerformLuaInjection", 0x0);
+            reg->WriteInteger("ElemDumper", (int)hacks.ElemDumper);
             reg->WriteInteger("AimMode", (DWORD)hacks.aimMode);
             reg->WriteInteger("RepeatDelay", REPEAT_DELAY);
             reg->WriteInteger("FlareKey", hacks.FlareKey);
@@ -53,6 +126,7 @@ void __stdcall FireFest::InitHacks()
             if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
             hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection");
             hacks.ScriptNumber = reg->ReadInteger("ScriptNumber");
+            hacks.ElemDumper = (bool)reg->ReadInteger("ElemDumper");
             hacks.aimMode = (HacksData::AIMING_TYPE)reg->ReadInteger("AimMode");
             REPEAT_DELAY = reg->ReadInteger("RepeatDelay");
             hacks.FlareKey = reg->ReadInteger("FlareKey");
@@ -71,13 +145,25 @@ void __stdcall FireFest::InitHacks()
         delete reg; return true;
     }; if (ReadHackSettings())
     {
+        auto ElementDataHook = []() -> void
+        {
+            const char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\xB4\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56" };
+            const char mask[] = { "xxxxxx????xxxxxxxxxxxxxx????xxxxxx" };
+            SigScan scn; Addr = scn.FindPattern("client.dll", pattern, mask);
+            if (Addr != NULL)
+            {
+                MH_CreateHook((PVOID)Addr, &SetCustomData, reinterpret_cast<PVOID*>(&ptrSetCustomData));
+                MH_EnableHook(MH_ALL_HOOKS);
+            }
+        };
+        if (hacks.ElemDumper) ElementDataHook();
         auto InstallLuaHook = []()
         {
             const char pattern[] = { "\x55\x8B\xEC\x56\x8B\x75\x0C\x57\x8B\x7D\x08\xFF\x36\xFF\x37\xE8\x00\x00\x00\x00\x83\xC4\x08\x84\xC0\x74\x0C\x83\x07\x03\xB0\x01\x83\x06\xFD\x5F\x5E\x5D\xC3" };
             const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
             luaHook = scan.FindPattern("client.dll", pattern, mask);
             if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
-        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook(); MH_Initialize();
+        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook(); 
         auto PatchLocker = []()
         {
             static const char pattern[] = { "\x55\x8B\xEC\x56\x8B\xF1\x8B\x8E\xA4\x01\x00\x00\x85\xC9\x74\x19\x8B\x01\x53\x8B\x5D\x08\x53\xFF\x90\x94" };

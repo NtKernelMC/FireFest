@@ -2,8 +2,8 @@
      Создается библиотека ..\..\..\Desktop\GTA SA HOME-RP\dxgi.lib и объект ..\..\..\Desktop\GTA SA HOME-RP\dxgi.exp
 LINK : warning LNK4098: библиотека по умолчанию "LIBCMT" конфликтует с использованием других библиотек; используйте /NODEFAULTLIB:library
   Создание кода
-  2 of 317 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
-    1 functions were new in current compilation
-    2 functions had inline decision re-evaluated but remain unchanged
+  10 of 322 functions ( 3.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    4 functions had inline decision re-evaluated but remain unchanged
   Создание кода завершено
   FireFest.vcxproj -> C:\Users\Czynnik.WSZYSTKO-21\source\repos\FireFest\..\..\..\Desktop\GTA SA HOME-RP\dxgi.dll

@@ -6,7 +6,15 @@
     + Добавлен режим дампер луа скриптов
     + Исправлен баг с отключением луа инжектора
     + Добавлен анти замок, анти фриз и анти-ключи на транспорт
+    ---- FireFest v14 by NtKernelMC
+    + Добавлен дампер элемент дат (как входящих так и исходящих с клиента)
+    - Добавлен эксперементальный обход стандартного античита MTA:SA
+    - Визуальная смена серийника в консоли для снятия видеоподстав игроков
+    - Добавлена возможность отключения клиентских событий в луа скриптах
+    - Анти замок, анти фриз и анти-ключи на транспорт теперь по умолчанию отключены
+    - Сделан лаунчер чита с системой временных лицензий
 	Becoming God!
+    RVA: 0x6299E | netc.dll IWbem::Get
 */
 #include <Windows.h>
 #include <stdio.h>
@@ -117,11 +125,7 @@ __declspec(naked) void FakeUpdateHMDEmulationStatus()
 #pragma endregion
 void __stdcall OwnThread()
 {
-	if (!GetModuleHandleA("samp.dll"))
-	{
-		while (!GetModuleHandleA("client.dll")) { Sleep(10); }
-	}
-	FireFest::InitHacks();
+   FireFest::InitHacks();
 }
 __forceinline void RtlThread(void) { thread Asyncer(OwnThread); Asyncer.detach(); }
 int __stdcall DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)

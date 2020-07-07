@@ -10,13 +10,14 @@
 #include "sigscan.h"
 #include "HWBP.h"
 #include "Registry.h"
-//#include "MtaStuff.h"
 #include "MinHook.h"
 #pragma comment(lib, "libMinHook.x86.lib")
 using namespace std;
+typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
 #define MAX_PROJECTILES 32
+#define HACK_BUILD_VER "1402"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -44,6 +45,8 @@ private:
 	typedef void CPed;
 	typedef void CClientPlayer;
 	static CClientPlayer* pPlayer;
+	typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
+	static callSetCustomData ptrSetCustomData;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	typedef void(__thiscall* callSetFrozen)(void* ECX, bool freeze);
@@ -75,6 +78,7 @@ private:
 		bool AntiFreeze;
 		bool AntiLock;
 		bool AntiKeys;
+		bool ElemDumper;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
@@ -83,7 +87,7 @@ private:
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			AntiLock = true; AntiFreeze = true; AntiKeys = true;
+			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK;
 			LastTarget = 0x0; ScriptNumber = 0x1; LuaDumper = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
@@ -113,4 +117,5 @@ public:
 	static void __fastcall SetFrozen(void *ECX, void *EDX, bool freeze);
 	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
 	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
+	static void __fastcall SetCustomData(void* ECX, void *EDX, const char* szName, void* Variable, bool bSynchronized);
 };

@@ -99,6 +99,7 @@ public:
 		return true;
 	}
 private:
+	CRITICAL_SECTION CriticalSection;
 	static bool deleteHWBP(PPRM_THREAD prm)
 	{
 		auto it = hooks.find(prm->target);
