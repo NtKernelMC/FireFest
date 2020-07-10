@@ -8,10 +8,7 @@ FireFest::callSetLocked FireFest::pSetLocked = (FireFest::callSetLocked)0x0;
 FireFest::callSetEngine FireFest::pSetEngine = (FireFest::callSetEngine)0x0;
 FireFest::callSetCustomData FireFest::ptrSetCustomData = (FireFest::callSetCustomData)0x0;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
-DWORD Addr = 0x0;
-//const char value_d[] = { "AA0FC7F9BCC25560B1136D289701B9EB9E7E020792EFD50E9FC008FB83E4CF06" };
-//const char value_d[] = { "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" };
-DWORD luaHook = 0x0; //DWORD valAddr = 0x0;
+DWORD Addr = 0x0, luaHook = 0x0;
 void LogInFile(const char* log, ...)
 {
     FILE* hFile = fopen("!0_ElementsDump.log", "a+");
@@ -22,28 +19,6 @@ void LogInFile(const char* log, ...)
         fclose(hFile); va_end(arglist);
     }
 }
-/*char* reg_str = nullptr; //F819:GB2B:3:3G1G63888766:4DD2D63
-__declspec(naked) void __stdcall FireFest::SpoofWQL()
-{
-    //__asm lea edi, reg_str
-    //__asm mov DWORD PTR DS : [EBX + 0x4], edi
-    __asm mov edi, DWORD PTR DS:[EBX + 0x4]
-    __asm mov valAddr, edi
-    reg_str = (char*)valAddr;
-    LogInFile("Pure Serial (Unique #1): %s\n", reg_str);
-    HWBP::DeleteHWBP(Addr);
-    __asm jmp Addr
-}
-const char* crypted_s = "F819:GB2B:3:3G1G63888766:4DD2D63"; 
-__declspec(naked) void __stdcall EncryptedSerial()
-{
-    __asm mov ebx, crypted_s
-    __asm mov valAddr, ebx
-    crypted_s = (char*)valAddr;
-    LogInFile("Encrypted Serial (Unique #2): %s\n", crypted_s);
-    HWBP::DeleteHWBP(Addr2);
-    __asm jmp Addr2
-}*/
 void __fastcall FireFest::SetCustomData(void* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized)
 {
     ptrSetCustomData(ECX, szName, Variable, bSynchronized);
@@ -64,35 +39,6 @@ void __fastcall FireFest::SetEngine(void* ECX, void* EDX, bool status)
 void __stdcall FireFest::InitHacks()
 {
     MH_Initialize();
-    /*auto InstallWmiHook = []()
-    {
-        //Pattern: \x57\x53\x8D\x4D\xA8\xE8\x00\x00\x00\x00\x53\xE8\x00\x00\x00\x00\x8B\x55
-        //Mask: xxxxxx????xx????xx
-        //RVA: 0x1A058B | Possible HDD get
-        //"F819:GB2B:3:3G1G63888766:4DD2D63"
-        //2EGE69GE:EB6E3E11D9FD7G4E4183:53 setString 1,"2EGE69GE:EB6E3E11D9FD7G4E4183:53"
-        //mod.party(dis.branchdest(cip)) == 1 
-        //Found at 0x{p:cip}
-        //cndsteroids.ismystring(eax, $ANSI, 1) || cndsteroids.ismystring(ebx, $ANSI, 1) || cndsteroids.ismystring(ecx, $ANSI, 1) || cndsteroids.ismystring(edx, $ANSI, 1) || cndsteroids.ismystring(ebp, $ANSI, 1) || cndsteroids.ismystring(esi, $ANSI, 1) || cndsteroids.ismystring(edi, $ANSI, 1)
-        while (!GetModuleHandleA("netc.dll")) { Sleep(10); }
-        const char pattern[] = { "\x8D\x7B\x04\x68" };
-        const char mask[] = { "xxxx" };
-        SigScan scn; Addr = scn.FindPattern("netc.dll", pattern, mask);
-        if (Addr != NULL)
-        {
-            ptrSpoofWQL = (callSpoofWQL)Addr;
-            //HWBP::InstallHWBP(Addr, (DWORD)&SpoofWQL);
-            //MH_CreateHook((PVOID)Addr, &SpoofWQL, reinterpret_cast<PVOID*>(&ptrSpoofWQL));
-            //MH_EnableHook(MH_ALL_HOOKS);
-        }
-        const char pattern2[] = { "\x57\x53\x8D\x4D\xA8\xE8\x00\x00\x00\x00\x53\xE8\x00\x00\x00\x00\x8B\x55" };
-        const char mask2[] = { "xxxxxx????xx????xx" };
-        Addr2 = scn.FindPattern("netc.dll", pattern2, mask2);
-        if (Addr2 != NULL)
-        {
-            HWBP::InstallHWBP(Addr2, (DWORD)&EncryptedSerial);
-        }
-    }; InstallWmiHook();*/
     while (!GetModuleHandleA("client.dll")) { Sleep(10); }
     auto ReadHackSettings = []() -> bool
     {
@@ -154,7 +100,9 @@ void __stdcall FireFest::InitHacks()
             {
                 MH_CreateHook((PVOID)Addr, &SetCustomData, reinterpret_cast<PVOID*>(&ptrSetCustomData));
                 MH_EnableHook(MH_ALL_HOOKS);
+                LogInFile("Hook installed\n");
             }
+            else LogInFile("Cant find sig!\n");
         };
         if (hacks.ElemDumper) ElementDataHook();
         auto InstallLuaHook = []()
@@ -163,7 +111,7 @@ void __stdcall FireFest::InitHacks()
             const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
             luaHook = scan.FindPattern("client.dll", pattern, mask);
             if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
-        }; if (hacks.PerformLuaInjection == 0x1) InstallLuaHook(); 
+        }; if (hacks.PerformLuaInjection == 0x1 || hacks.LuaDumper) InstallLuaHook(); 
         auto PatchLocker = []()
         {
             static const char pattern[] = { "\x55\x8B\xEC\x56\x8B\xF1\x8B\x8E\xA4\x01\x00\x00\x85\xC9\x74\x19\x8B\x01\x53\x8B\x5D\x08\x53\xFF\x90\x94" };
@@ -202,9 +150,8 @@ void __stdcall FireFest::InitHacks()
         KeysLoop.detach();
         thread ParseIt(PedPoolParser);
         ParseIt.detach();
-        //thread ParseThis(VehPoolParser);
-        //ParseThis.detach();
     }
+    else LogInFile("Cant read settings!\n");
 }
 void __stdcall FireFest::KeyChecker(void)
 {
@@ -327,31 +274,6 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
             fwrite(luaCode, 1, codeSize, hFile);
             fclose(hFile);
         }
-        //Имена элемент-дат
-
-        //carLicenses
-        //motoLicenses
-        //gruzLicenses
-        //busLicenses
-        //trainLicenses
-        //helicopterLicenses
-        //aircraftLicenses
-        //lvl
-        //exp
-        //ArmyR
-        //BOLR
-        //ticketsPlayer
-        //house_id
-        //bank.rus 
-
-        // Серверные эвенты
-        //triggerServerEvent("del_stars", localPlayer, sum_stars) - снимает розыск
-        //triggerServerEvent("invitationBuyCarAccepted", localPlayer, inv_player, inv_acc, inv_price, inv_veh_name, inv_veh_id) - каким то хуем можно купить чужой кар за халяву
-        //triggerServerEvent("giveARMORPOLICE", localPlayer, giveARMORPOLICE) - дает ментовский броник
-        //setElementData(localPlayer, "Pre_Goden", 1) - нужно для инвайта в армейку
-        //triggerServerEvent("heal_player_me_p", localPlayer, player, price) - лечит от имени медика за вашу цену
-        //triggerServerEvent("repChat",getLocalPlayer(), getLocalPlayer(), report, 'Admin mamku ebal!', 1, 'Loginov_Pidr') - отправка в вопроса в админ репорт с левым ником
-        //triggerServerEvent("tpADMIN",localPlayer, x1, y1, z1) - админский телепортер
         if (counter == hacks.ScriptNumber)
         {
             memset(luaCode, 0, codeSize);
@@ -363,37 +285,6 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
     if (hacks.LuaDumper || hacks.PerformLuaInjection) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
     return rslt;
 }
-/*void __stdcall FireFest::VehPoolParser(void)
-{
-    while (true)
-    {
-        DWORD vehPoolUsageInfo = *(DWORD*)0xB74494; CVector TargetPos;
-        DWORD vehPoolBegining = *(DWORD*)vehPoolUsageInfo;
-        DWORD byteMapAddr = *(DWORD*)(vehPoolUsageInfo + 4);
-        for (BYTE i = 1; i < 140; i++)
-        {
-            BYTE activityStatus = *(BYTE*)(byteMapAddr + i);
-            if (activityStatus > 0 && activityStatus < 128)
-            {
-                DWORD CVeh = (vehPoolBegining + i * 2584);
-                DWORD Matrix = *(DWORD*)(CVeh + 0x14);
-                TargetPos.fX = *(float*)(Matrix + 0x48);
-                TargetPos.fY = *(float*)(Matrix + 0x52);
-                TargetPos.fZ = *(float*)(Matrix + 0x56);
-                float health = *(float*)(CVeh + 0x4C0);
-                if (health > 250.0f)
-                {
-                    if (hacks.OpenerEnabled)
-                    {
-                        *(BYTE*)(CVeh + 1064) = 16; // start engine
-                        *(DWORD*)(CVeh + 1272) = 0x1; // unlock doors
-                    }
-                }
-            }
-        }
-        Sleep(hacks.iterationDelay);
-    }
-}*/
 void __stdcall FireFest::PedPoolParser(void)
 { 
     while (true)

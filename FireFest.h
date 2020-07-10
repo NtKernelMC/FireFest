@@ -17,7 +17,7 @@ typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
 #define MAX_PROJECTILES 32
-#define HACK_BUILD_VER "1402"
+#define HACK_BUILD_VER "1403"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -107,7 +107,6 @@ public:
 	static void __stdcall InitHacks();
 	static void __stdcall KeyChecker(void);
 	static void __stdcall PedPoolParser(void);
-	//static void __stdcall VehPoolParser(void);
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
 	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);
