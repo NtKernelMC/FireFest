@@ -19,7 +19,7 @@ protected:
 	bool GetRegister(LPCSTR lpName, DWORD dwType, void* outBuf, DWORD size);
 	bool SetRegister(LPCSTR lpName, DWORD dwType, void* inBuf, DWORD size);
 	bool GetRegisterDefault(LPSTR outBuf, LONG maxSize);
-	bool SetRegisterDefault(LPCSTR inBuf);
+	bool SetRegisterDefault(LPCSTR inBuf, bool long_string = false);
 	bool DeleteRegister(LPCSTR lpName);
 	bool AutoSizeWrite(DWORD dwType, void* inBuf, DWORD &size);
 	bool AutoSizeRead(DWORD dwType, void* outBuf, DWORD &size);
@@ -31,8 +31,8 @@ class CEasyRegistry : CRegistry
 public:
 	bool no_error;
 	bool ErrorSuccess();
-	void WriteString(LPCSTR lpName, LPSTR lpString, ...);
-	std::string ReadString(LPCSTR lpName);
+	void WriteString(LPCSTR lpName, LPSTR lpString, bool multi_sz = false, ...);
+	std::string ReadString(LPCSTR lpName, bool multi_sz = false);
 	void WriteInteger(LPCSTR lpName, int value);
 	int ReadInteger(LPCSTR lpName);
 	void WriteFloat(LPCSTR lpName, float value);

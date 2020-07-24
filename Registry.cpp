@@ -45,14 +45,15 @@ bool CRegistry::GetRegisterDefault(LPSTR outBuf, LONG maxSize)
 
 	return !RegQueryValueA(_hKey, NULL, (LPSTR)outBuf, &maxSize);
 }
-bool CRegistry::SetRegisterDefault(LPCSTR inBuf)
+bool CRegistry::SetRegisterDefault(LPCSTR inBuf, bool long_string)
 {
 	if (inBuf == nullptr || _hKey == NULL)
 		return false;
-
-	return !RegSetValueA(_hKey, NULL, REG_SZ, inBuf, strlen(inBuf));
+	bool rslt = false;
+	if (!long_string) rslt = RegSetValueA(_hKey, NULL, REG_SZ, inBuf, strlen(inBuf));
+	else rslt = RegSetValueA(_hKey, NULL, REG_MULTI_SZ, inBuf, strlen(inBuf));
+	return rslt;
 }
-
 bool CRegistry::DeleteRegister(LPCSTR lpName)
 {
 	if (_hKey == NULL)
@@ -71,6 +72,8 @@ bool CRegistry::AutoSizeWrite(DWORD dwType, void* inBuf, DWORD &size)
 			size = 1;
 			break;
 		case REG_DWORD:
+			size = 4;
+			break;
 		case REG_DWORD_BIG_ENDIAN:
 			size = 4;
 			break;
@@ -78,8 +81,12 @@ bool CRegistry::AutoSizeWrite(DWORD dwType, void* inBuf, DWORD &size)
 			size = 8;
 			break;
 		case REG_EXPAND_SZ:
+			break;
 		case REG_LINK:
+			break;
 		case REG_MULTI_SZ:
+			size = strlen((LPCSTR)inBuf);
+			break;
 		case REG_SZ:
 			size = strlen((LPCSTR)inBuf);
 			break;
@@ -99,6 +106,8 @@ bool CRegistry::AutoSizeRead(DWORD dwType, void* outBuf, DWORD &size)
 			size = 1;
 			break;
 		case REG_DWORD:
+			size = 4;
+			break;
 		case REG_DWORD_BIG_ENDIAN:
 			size = 4;
 			break;
@@ -106,10 +115,15 @@ bool CRegistry::AutoSizeRead(DWORD dwType, void* outBuf, DWORD &size)
 			size = 8;
 			break;
 		case REG_EXPAND_SZ:
+			break;
 		case REG_LINK:
+			break;
 		case REG_MULTI_SZ:
+			break;
 		case REG_SZ:
+			break;
 		case REG_NONE:
+			break;
 		default:
 			return false;
 		}
@@ -128,7 +142,7 @@ void CEasyRegistry::DeleteKey(LPCSTR lpName)
 {
 	no_error = DeleteRegister(lpName);
 }
-void CEasyRegistry::WriteString(LPCSTR lpName, LPSTR lpString, ...)
+void CEasyRegistry::WriteString(LPCSTR lpName, LPSTR lpString, bool multi_sz, ...)
 {
 	va_list ap;
 	char    *szStr = new char[strlen(lpString) * 2 + 1024];
@@ -136,13 +150,15 @@ void CEasyRegistry::WriteString(LPCSTR lpName, LPSTR lpString, ...)
 	vsprintf(szStr, lpString, ap);
 	va_end(ap);
 
-	no_error = SetRegister(lpName, REG_SZ, szStr, strlen(szStr));
+	if (!multi_sz) no_error = SetRegister(lpName, REG_SZ, szStr, strlen(szStr));
+	else no_error = SetRegister(lpName, REG_MULTI_SZ, szStr, strlen(szStr));
 	delete[] szStr;
 }
-std::string CEasyRegistry::ReadString(LPCSTR lpName)
+std::string CEasyRegistry::ReadString(LPCSTR lpName, bool multi_sz)
 {
 	char szStr[0x1000];
-	no_error = GetRegister(lpName, REG_MULTI_SZ, szStr, 0x1000);
+	if (!multi_sz) no_error = GetRegister(lpName, REG_SZ, szStr, 0x1000);
+	else no_error = GetRegister(lpName, REG_MULTI_SZ, szStr, 0x1000);
 	return szStr;
 }
 

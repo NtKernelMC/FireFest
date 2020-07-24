@@ -6,12 +6,15 @@ FireFest::CClientPlayer* FireFest::pPlayer = nullptr;
 FireFest::callSetFrozen FireFest::pSetFrozen = (FireFest::callSetFrozen)0x0;
 FireFest::callSetLocked FireFest::pSetLocked = (FireFest::callSetLocked)0x0;
 FireFest::callSetEngine FireFest::pSetEngine = (FireFest::callSetEngine)0x0;
-FireFest::callSetCustomData FireFest::ptrSetCustomData = (FireFest::callSetCustomData)0x0;
+FireFest::callSetElementData FireFest::ptrSetElementData = (FireFest::callSetElementData)0x0;
+FireFest::callGetCustomData FireFest::ptrGetCustomData = (FireFest::callGetCustomData)0x0;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
-DWORD Addr = 0x0, luaHook = 0x0;
-void LogInFile(const char* log, ...)
+DWORD Addr = 0x0, Addr2 = 0x0, luaHook = 0x0;
+typedef bool(__cdecl* ptrCheckUTF8BOMAndUpdate)(char** pcpOutBuffer, unsigned int* puiOutSize);
+ptrCheckUTF8BOMAndUpdate callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)0x0;
+void LogInFile(const char* log_name, const char* log, ...)
 {
-    FILE* hFile = fopen("!0_ElementsDump.log", "a+");
+    FILE* hFile = fopen(log_name, "a+");
     if (hFile)
     {
         va_list arglist; va_start(arglist, log);
@@ -19,10 +22,22 @@ void LogInFile(const char* log, ...)
         fclose(hFile); va_end(arglist);
     }
 }
-void __fastcall FireFest::SetCustomData(void* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized)
+void* __fastcall FireFest::GetCustomData(CClientEntity* ECX, void* EDX, const char* szName, bool bInheritData, bool* pbIsSynced)
 {
-    ptrSetCustomData(ECX, szName, Variable, bSynchronized);
-    LogInFile("ElementData: %s\n", szName);
+    time_t t = std::time(0);
+    tm* now = std::localtime(&t);
+    void* rslt = ptrGetCustomData(ECX, szName, bInheritData, pbIsSynced);
+    LogInFile("!0_GetElementData.log", "[%d:%d:%d] GetElementData: %s\n", now->tm_hour, now->tm_min, now->tm_sec, szName);
+    return rslt;
+}
+//void __fastcall FireFest::SetCustomData(void* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized)
+bool __cdecl FireFest::SetElementData(void* ECX, const char* szName, void* Variable, bool bSynchronized)
+{
+    time_t t = std::time(0);  
+    tm* now = std::localtime(&t);
+    bool rslt = ptrSetElementData(ECX, szName, Variable, bSynchronized);
+    LogInFile("!0_SetElementData.log", "[%d:%d:%d] SetElementData: %s\n", now->tm_hour, now->tm_min, now->tm_sec, szName);
+    return rslt;
 }
 void __fastcall FireFest::SetFrozen(void* ECX, void* EDX, bool freeze)
 {
@@ -46,10 +61,10 @@ void __stdcall FireFest::InitHacks()
         if (reg->ReadString("Version").find(HACK_BUILD_VER) == string::npos)
         {
             reg->WriteString("Version", const_cast<char*>(HACK_BUILD_VER));
-            reg->WriteString("luaCode", const_cast<char*>(""));
+            reg->WriteInteger("AutoFindScript", hacks.AutoFindScript);
             reg->WriteInteger("LuaDumper", (int)hacks.LuaDumper);
-            reg->WriteInteger("ScriptNumber", 0x1);
-            reg->WriteInteger("PerformLuaInjection", 0x0);
+            reg->WriteInteger("ScriptNumber", hacks.ScriptNumber);
+            reg->WriteInteger("PerformLuaInjection", hacks.PerformLuaInjection);
             reg->WriteInteger("ElemDumper", (int)hacks.ElemDumper);
             reg->WriteInteger("AimMode", (DWORD)hacks.aimMode);
             reg->WriteInteger("RepeatDelay", REPEAT_DELAY);
@@ -68,10 +83,10 @@ void __stdcall FireFest::InitHacks()
         }
         else
         {
-            hacks.LuaDumper = (bool)reg->ReadInteger("LuaDumper");
-            if (!reg->ReadString("luaCode").empty()) hacks.lua_code = reg->ReadString("luaCode");
-            hacks.PerformLuaInjection = reg->ReadInteger("PerformLuaInjection");
             hacks.ScriptNumber = reg->ReadInteger("ScriptNumber");
+            hacks.LuaDumper = (bool)reg->ReadInteger("LuaDumper");
+            hacks.PerformLuaInjection = (bool)reg->ReadInteger("PerformLuaInjection");
+            hacks.AutoFindScript = (bool)reg->ReadInteger("AutoFindScript");
             hacks.ElemDumper = (bool)reg->ReadInteger("ElemDumper");
             hacks.aimMode = (HacksData::AIMING_TYPE)reg->ReadInteger("AimMode");
             REPEAT_DELAY = reg->ReadInteger("RepeatDelay");
@@ -93,16 +108,29 @@ void __stdcall FireFest::InitHacks()
     {
         auto ElementDataHook = []() -> void
         {
-            const char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\xB4\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56" };
-            const char mask[] = { "xxxxxx????xxxxxxxxxxxxxx????xxxxxx" };
+            const char pattern[] = { "\x55\x8B\xEC\x83\xEC\x0C\x53\x56\x8B\x75\x0C\x85" };
+            const char mask[] = { "xxxxxxxxxxxx" };
             SigScan scn; Addr = scn.FindPattern("client.dll", pattern, mask);
             if (Addr != NULL)
             {
-                MH_CreateHook((PVOID)Addr, &SetCustomData, reinterpret_cast<PVOID*>(&ptrSetCustomData));
+                MH_CreateHook((PVOID)Addr, &SetElementData, reinterpret_cast<PVOID*>(&ptrSetElementData));
                 MH_EnableHook(MH_ALL_HOOKS);
-                LogInFile("Hook installed\n");
+                DeleteFileA("!0_SetElementData.log");
+                LogInFile("!0_SetElementData.log", "Hook installed #1\n");
             }
-            else LogInFile("Cant find sig!\n");
+            else LogInFile("!0_SetElementData.log", "Cant find sig! #1\n");
+            //////////////////////////////////////////////////////////////////////////////////////
+            const char pattern2[] = { "\x55\x8B\xEC\x53\x8A\x5D\x0C" };
+            const char mask2[] = { "xxxxxxx" };
+            Addr2 = scn.FindPattern("client.dll", pattern2, mask2);
+            if (Addr2 != NULL)
+            {
+                MH_CreateHook((PVOID)Addr2, &GetCustomData, reinterpret_cast<PVOID*>(&ptrGetCustomData));
+                MH_EnableHook(MH_ALL_HOOKS);
+                DeleteFileA("!0_GetElementData.log");
+                LogInFile("!0_GetElementData.log", "Hook installed #2\n");
+            }
+            else LogInFile("!0_GetElementData.log", "Cant find sig! #2\n");
         };
         if (hacks.ElemDumper) ElementDataHook();
         auto InstallLuaHook = []()
@@ -110,7 +138,12 @@ void __stdcall FireFest::InitHacks()
             const char pattern[] = { "\x55\x8B\xEC\x56\x8B\x75\x0C\x57\x8B\x7D\x08\xFF\x36\xFF\x37\xE8\x00\x00\x00\x00\x83\xC4\x08\x84\xC0\x74\x0C\x83\x07\x03\xB0\x01\x83\x06\xFD\x5F\x5E\x5D\xC3" };
             const char mask[] = { "xxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx" }; SigScan scan;
             luaHook = scan.FindPattern("client.dll", pattern, mask);
-            if (luaHook != NULL) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
+            if (luaHook != NULL)
+            {
+                callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)luaHook;
+                MH_CreateHook((PVOID)luaHook, &CheckUTF8BOMAndUpdate, reinterpret_cast<PVOID*>(&callCheckUTF8BOMAndUpdate));
+                MH_EnableHook(MH_ALL_HOOKS);
+            }
         }; if (hacks.PerformLuaInjection == 0x1 || hacks.LuaDumper) InstallLuaHook(); 
         auto PatchLocker = []()
         {
@@ -151,7 +184,7 @@ void __stdcall FireFest::InitHacks()
         thread ParseIt(PedPoolParser);
         ParseIt.detach();
     }
-    else LogInFile("Cant read settings!\n");
+    else LogInFile("!0_FireFest.log", "Cant read settings!\n");
 }
 void __stdcall FireFest::KeyChecker(void)
 {
@@ -259,13 +292,15 @@ void __stdcall FireFest::InstallDoPulsePreFrameHook()
 }
 bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize)
 {
-    HWBP::DeleteHWBP(luaHook);
-    typedef bool(__cdecl* ptrCheckUTF8BOMAndUpdate)(char** pcpOutBuffer, unsigned int* puiOutSize);
-    ptrCheckUTF8BOMAndUpdate callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)luaHook;
+    auto DisableLuaHook = []()
+    {
+        MH_DisableHook((PVOID)luaHook);
+        MH_RemoveHook((PVOID)luaHook);
+    };
     bool rslt = callCheckUTF8BOMAndUpdate(pcpOutBuffer, puiOutSize);
-    static int counter = hacks.ScriptNumber;
     auto InjectLuaCode = [](char* luaCode, SIZE_T codeSize)
     {
+        static int counter = 0x1;
         if (hacks.LuaDumper)
         {
             char fname[35]; memset(fname, 0, sizeof(fname));
@@ -274,15 +309,57 @@ bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* 
             fwrite(luaCode, 1, codeSize, hFile);
             fclose(hFile);
         }
-        if (counter == hacks.ScriptNumber)
+        if ((counter == hacks.ScriptNumber && !hacks.AutoFindScript) || hacks.AutoFindScript)
         {
-            memset(luaCode, 0, codeSize);
-            strcat(luaCode, hacks.lua_code.c_str());
-            hacks.PerformLuaInjection = false;
+            std::string runtime_loader = R"(function RuntimeInject(path)
+                local sThisResourceName = getResourceName( getThisResource() ) 
+                local sPathToFile = ':'..sThisResourceName..'/'..path
+                outputChatBox('[Loading] ' .. sPathToFile)
+                local opened = fileOpen(sPathToFile)
+                if not opened then
+                    outputChatBox('[Error] Can`t find resource ' .. sPathToFile)
+                    return false 
+                end
+                local count = fileGetSize(opened)
+                local data = fileRead(opened, count)
+                fileClose(opened)
+                local execute_script = loadstring(data)
+                outputChatBox('Injected code: ' .. data) 
+                execute_script()
+            end
+
+        addCommandHandler("loadscript", function(cmd, fileName)
+            RuntimeInject(fileName)
+        end))";
+            if (codeSize >= runtime_loader.length())
+            {
+                if (!hacks.AutoFindScript)
+                {
+                    memset(luaCode, 0, codeSize);
+                    strcat(luaCode, runtime_loader.c_str());
+                }
+                else
+                {
+                    char scr_finder[155]; memset(scr_finder, 0, sizeof(scr_finder));
+                    sprintf(scr_finder, "outputChatBox(\"Injectectable script with number %d | size %d | required size %d\")", 
+                    counter, codeSize, runtime_loader.length());
+                    memset(luaCode, 0, codeSize);
+                    strcat(luaCode, scr_finder);
+                }
+            }
+            else 
+            {
+                if (!hacks.AutoFindScript)
+                {
+                    MessageBeep(MB_ICONERROR);
+                    MessageBoxA(0, "Choosen lua script is too small!", "Error", MB_ICONERROR | MB_OK);
+                    hacks.PerformLuaInjection = false;
+                }
+            }
         }
         counter++;
     }; InjectLuaCode(*pcpOutBuffer, *puiOutSize);
-    if (hacks.LuaDumper || hacks.PerformLuaInjection) HWBP::InstallHWBP(luaHook, (DWORD)&CheckUTF8BOMAndUpdate);
+    if (!hacks.LuaDumper && !hacks.PerformLuaInjection) DisableLuaHook();
     return rslt;
 }
 void __stdcall FireFest::PedPoolParser(void)

@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <thread>
+#include <ctime>
 #include "CVector.h"
 #include "WepTypes.h"
 #include "sigscan.h"
@@ -17,7 +18,7 @@ typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
 #define MAX_PROJECTILES 32
-#define HACK_BUILD_VER "1403"
+#define HACK_BUILD_VER "1407"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -44,9 +45,13 @@ private:
 	typedef void CEntity;
 	typedef void CPed;
 	typedef void CClientPlayer;
+	typedef void CClientEntity;
 	static CClientPlayer* pPlayer;
-	typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
-	static callSetCustomData ptrSetCustomData;
+	typedef void* (__thiscall *callGetCustomData)(CClientEntity* ECX, const char* szName, bool bInheritData, bool* pbIsSynced);
+	static callGetCustomData ptrGetCustomData;
+	//typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
+	typedef bool(__cdecl* callSetElementData)(void* ECX, const char* szName, void* Variable, bool bSynchronized);
+	static callSetElementData ptrSetElementData;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	typedef void(__thiscall* callSetFrozen)(void* ECX, bool freeze);
@@ -64,8 +69,8 @@ private:
 			AIM_TARGET = 2
 		};
 		CVector CamPos;
-		DWORD ScriptNumber;
 		AIMING_TYPE aimMode;
+		int ScriptNumber;
 		bool LuaDumper;
 		bool FlareEnabled;
 		bool BombingEnabled;
@@ -79,6 +84,7 @@ private:
 		bool AntiLock;
 		bool AntiKeys;
 		bool ElemDumper;
+		bool AutoFindScript;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
@@ -88,8 +94,8 @@ private:
 		HacksData()
 		{
 			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false;
-			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK;
-			LastTarget = 0x0; ScriptNumber = 0x1; LuaDumper = false;
+			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true;
+			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
 			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
 			FlareEnabled = false;
@@ -116,5 +122,7 @@ public:
 	static void __fastcall SetFrozen(void *ECX, void *EDX, bool freeze);
 	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
 	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
-	static void __fastcall SetCustomData(void* ECX, void *EDX, const char* szName, void* Variable, bool bSynchronized);
+	static void* __fastcall GetCustomData(CClientEntity* ECX, void *EDX, const char* szName, bool bInheritData, bool* pbIsSynced);
+	//static void __fastcall SetCustomData(void* ECX, void *EDX, const char* szName, void* Variable, bool bSynchronized);
+	static bool __cdecl SetElementData(void* ECX, const char* szName, void* Variable, bool bSynchronized);
 };
