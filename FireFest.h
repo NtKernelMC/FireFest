@@ -5,6 +5,8 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <thread>
+#include <map>
+#include <vector>
 #include <ctime>
 #include "CVector.h"
 #include "WepTypes.h"
@@ -17,8 +19,7 @@ using namespace std;
 typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
-#define MAX_PROJECTILES 32
-#define HACK_BUILD_VER "1407"
+#define HACK_BUILD_VER "1409"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -40,13 +41,18 @@ private:
 		EXP_TYPE_VERY_TINY
 	};
 	static DWORD scanAddr;
+	typedef void CLuaFunctionRef;
 	typedef void CClientGame;
 	static CClientGame* g_pClientGame;
 	typedef void CEntity;
 	typedef void CPed;
 	typedef void CClientPlayer;
 	typedef void CClientEntity;
+	typedef void CLuaMain;
 	static CClientPlayer* pPlayer;
+	typedef bool (__cdecl* ptrAddEventHandler)(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
+	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
+	static ptrAddEventHandler callAddEventHandler;
 	typedef void* (__thiscall *callGetCustomData)(CClientEntity* ECX, const char* szName, bool bInheritData, bool* pbIsSynced);
 	static callGetCustomData ptrGetCustomData;
 	//typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
@@ -66,7 +72,8 @@ private:
 		enum AIMING_TYPE
 		{
 			AIM_MASSIVE = 1,
-			AIM_TARGET = 2
+			AIM_TARGET = 2,
+			AIM_SELF = 3
 		};
 		CVector CamPos;
 		AIMING_TYPE aimMode;
@@ -84,18 +91,20 @@ private:
 		bool AntiLock;
 		bool AntiKeys;
 		bool ElemDumper;
+		bool EventDisabler;
 		bool AutoFindScript;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
+		bool ProtectSelf;
 		string lua_code;
 		eExplosionType ExplosionType;
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false;
+			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; bool ProtectSelf = true;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true;
-			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1;
+			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = true;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
 			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
 			FlareEnabled = false;
@@ -113,6 +122,7 @@ public:
 	static void __stdcall InitHacks();
 	static void __stdcall KeyChecker(void);
 	static void __stdcall PedPoolParser(void);
+	static bool __stdcall IsFlashLimitReached(USHORT *count);
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
 	static CClientPlayer* GetClosestRemotePlayer(const CVector& vecTemp, float fMaxDistance);
@@ -123,6 +133,7 @@ public:
 	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
 	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
 	static void* __fastcall GetCustomData(CClientEntity* ECX, void *EDX, const char* szName, bool bInheritData, bool* pbIsSynced);
-	//static void __fastcall SetCustomData(void* ECX, void *EDX, const char* szName, void* Variable, bool bSynchronized);
+	static bool __cdecl AddEventHandler(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
+	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
 	static bool __cdecl SetElementData(void* ECX, const char* szName, void* Variable, bool bSynchronized);
 };
