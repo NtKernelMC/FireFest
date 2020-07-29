@@ -21,23 +21,26 @@ bool __stdcall FireFest::IsDirectoryExists(const std::string& dirName_in)
 };
 void __stdcall FireFest::LogInFile(std::string log_name, const char* log, ...)
 {
-    char hack_dir[256]; memset(hack_dir, 0, sizeof(hack_dir));
-    _getcwd(hack_dir, 256); strcat(hack_dir, "\\FireFest");
+    char hack_dir[356]; memset(hack_dir, 0, sizeof(hack_dir));
+    _getcwd(hack_dir, 356); strcat(hack_dir, "\\FireFest");
     if (!IsDirectoryExists(hack_dir)) CreateDirectoryA(hack_dir, NULL);
+    char new_dir[500]; memset(new_dir, 0, sizeof(new_dir));
+    sprintf(new_dir, "%s\\%s", hack_dir, log_name.c_str());
     static bool once = false; if (!once) 
     { 
-        DeleteFileA(std::string(hack_dir + '\\' + log_name).c_str());
+        FILE* hFile = fopen(new_dir, "rb");
+        if (hFile) { fclose(hFile); DeleteFileA(new_dir); }
         once = true;
     }
-    FILE* hFile = fopen(std::string(hack_dir + '\\' + log_name).c_str(), "a+");
+    FILE* hFile = fopen(new_dir, "a+");
     if (hFile)
     {
         time_t t = std::time(0); tm* now = std::localtime(&t);
-        char tmp_stamp[55]; memset(tmp_stamp, 0, sizeof(tmp_stamp));
+        char tmp_stamp[500]; memset(tmp_stamp, 0, sizeof(tmp_stamp));
         sprintf(tmp_stamp, "[%d:%d:%d]", now->tm_hour, now->tm_min, now->tm_sec);
-        va_list arglist; va_start(arglist, log); vfprintf(hFile, 
-        std::string(tmp_stamp + ' ' + std::string(log)).c_str(), arglist);
-        fclose(hFile); va_end(arglist);
+        strcat(tmp_stamp, std::string(" " + std::string(log)).c_str());
+        va_list arglist; va_start(arglist, log); vfprintf(hFile, tmp_stamp, arglist);
+        va_end(arglist); fclose(hFile);
     }
 }
 void* __fastcall FireFest::GetCustomData(CClientEntity* ECX, void* EDX, const char* szName, bool bInheritData, bool* pbIsSynced)
