@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <ctime>
+#include <direct.h>
 #include "CVector.h"
 #include "WepTypes.h"
 #include "sigscan.h"
@@ -55,9 +56,8 @@ private:
 	static ptrAddEventHandler callAddEventHandler;
 	typedef void* (__thiscall *callGetCustomData)(CClientEntity* ECX, const char* szName, bool bInheritData, bool* pbIsSynced);
 	static callGetCustomData ptrGetCustomData;
-	//typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
-	typedef bool(__cdecl* callSetElementData)(void* ECX, const char* szName, void* Variable, bool bSynchronized);
-	static callSetElementData ptrSetElementData;
+	typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
+	static callSetCustomData ptrSetCustomData;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	typedef void(__thiscall* callSetFrozen)(void* ECX, bool freeze);
@@ -77,7 +77,7 @@ private:
 		};
 		CVector CamPos;
 		AIMING_TYPE aimMode;
-		int ScriptNumber;
+		DWORD ScriptNumber;
 		bool LuaDumper;
 		bool FlareEnabled;
 		bool BombingEnabled;
@@ -104,7 +104,7 @@ private:
 		{
 			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; bool ProtectSelf = true;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true;
-			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = true;
+			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
 			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
 			FlareEnabled = false;
@@ -119,6 +119,8 @@ private:
 		}
 	}; static HacksData hacks;
 public:
+	static void __stdcall LogInFile(std::string log_name, const char* log, ...);
+	static bool __stdcall IsDirectoryExists(const std::string& dirName_in);
 	static void __stdcall InitHacks();
 	static void __stdcall KeyChecker(void);
 	static void __stdcall PedPoolParser(void);
@@ -133,7 +135,7 @@ public:
 	static void __fastcall SetLocked(void* ECX, void* EDX, bool lock);
 	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
 	static void* __fastcall GetCustomData(CClientEntity* ECX, void *EDX, const char* szName, bool bInheritData, bool* pbIsSynced);
+	static void __fastcall SetCustomData(CClientEntity* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized = true);
 	static bool __cdecl AddEventHandler(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
 	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
-	static bool __cdecl SetElementData(void* ECX, const char* szName, void* Variable, bool bSynchronized);
 };
