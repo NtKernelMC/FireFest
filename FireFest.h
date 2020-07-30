@@ -20,7 +20,7 @@ using namespace std;
 typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
-#define HACK_BUILD_VER "1409"
+#define HACK_BUILD_VER "1410"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -51,6 +51,8 @@ private:
 	typedef void CClientEntity;
 	typedef void CLuaMain;
 	static CClientPlayer* pPlayer;
+	typedef bool(__cdecl* ptrTriggerServerEvent)(const char* szName, CClientEntity* CallWithEntity, void* Arguments);
+	static ptrTriggerServerEvent callTriggerServerEvent;
 	typedef bool (__cdecl* ptrAddEventHandler)(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
 	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
 	static ptrAddEventHandler callAddEventHandler;
@@ -92,6 +94,7 @@ private:
 		bool AntiKeys;
 		bool ElemDumper;
 		bool EventDisabler;
+		bool DumpServerEvents;
 		bool AutoFindScript;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
 		DWORD iterationDelay;
@@ -103,7 +106,7 @@ private:
 		HacksData()
 		{
 			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; bool ProtectSelf = true;
-			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true;
+			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true; DumpServerEvents = false;
 			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
 			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
@@ -138,4 +141,5 @@ public:
 	static void __fastcall SetCustomData(CClientEntity* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized = true);
 	static bool __cdecl AddEventHandler(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
 	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
+	static bool __cdecl TriggerServerEvent(const char* szName, CClientEntity* CallWithEntity, void* Arguments);
 };

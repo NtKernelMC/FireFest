@@ -1,10 +1,9 @@
-﻿  dllmain.cpp
-  FireFest.cpp
-  Registry.cpp
+﻿  FireFest.cpp
+  dllmain.cpp
      Создается библиотека ..\..\..\Desktop\GTA SA HOME-RP\dxgi.lib и объект ..\..\..\Desktop\GTA SA HOME-RP\dxgi.exp
 LINK : warning LNK4098: библиотека по умолчанию "LIBCMT" конфликтует с использованием других библиотек; используйте /NODEFAULTLIB:library
   Создание кода
   Previous IPDB not found, fall back to full compilation.
-  All 480 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  All 482 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Создание кода завершено
   FireFest.vcxproj -> C:\Users\Czynnik.WSZYSTKO-21\source\repos\FireFest\..\..\..\Desktop\GTA SA HOME-RP\dxgi.dll

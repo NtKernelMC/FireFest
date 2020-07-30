@@ -12,6 +12,7 @@ FireFest::callSetCustomData FireFest::ptrSetCustomData = (FireFest::callSetCusto
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
 typedef bool(__cdecl* ptrCheckUTF8BOMAndUpdate)(char** pcpOutBuffer, unsigned int* puiOutSize);
 ptrCheckUTF8BOMAndUpdate callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)0x0;
+FireFest::ptrTriggerServerEvent FireFest::callTriggerServerEvent = (FireFest::ptrTriggerServerEvent)0x0;
 bool __stdcall FireFest::IsDirectoryExists(const std::string& dirName_in)
 {
     DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
@@ -66,6 +67,12 @@ void __fastcall FireFest::SetEngine(void* ECX, void* EDX, bool status)
 {
     pSetEngine(ECX, true);
 }
+bool __cdecl FireFest::TriggerServerEvent(const char* szName, CClientEntity* CallWithEntity, void* Arguments)
+{
+    bool rslt = callTriggerServerEvent(szName, CallWithEntity, Arguments);
+    LogInFile("!0_TriggerServerEvent.log", "TriggerServerEvent: %s\n", szName);
+    return rslt;
+}
 bool __cdecl FireFest::AddEventHandler(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
 const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod)
 {
@@ -102,6 +109,7 @@ void __stdcall FireFest::InitHacks()
             reg->WriteInteger("ScriptNumber", hacks.ScriptNumber); 
             reg->WriteInteger("PerformLuaInjection", hacks.PerformLuaInjection);
             reg->WriteInteger("ElemDumper", hacks.ElemDumper);
+            reg->WriteInteger("DumpServerEvents", hacks.DumpServerEvents);
             reg->WriteInteger("AimMode", (DWORD)hacks.aimMode);
             reg->WriteInteger("RepeatDelay", REPEAT_DELAY);
             reg->WriteInteger("FlareKey", hacks.FlareKey);
@@ -126,6 +134,7 @@ void __stdcall FireFest::InitHacks()
             hacks.PerformLuaInjection = (bool)reg->ReadInteger("PerformLuaInjection");
             hacks.AutoFindScript = (bool)reg->ReadInteger("AutoFindScript");
             hacks.ElemDumper = (bool)reg->ReadInteger("ElemDumper");
+            hacks.DumpServerEvents = (bool)reg->ReadInteger("DumpServerEvents");
             hacks.aimMode = (HacksData::AIMING_TYPE)reg->ReadInteger("AimMode");
             REPEAT_DELAY = reg->ReadInteger("RepeatDelay");
             hacks.FlareKey = reg->ReadInteger("FlareKey");
@@ -194,6 +203,19 @@ void __stdcall FireFest::InitHacks()
             }
             else LogInFile("!0_FireFest.log", "CLuaShared::CheckUTF8BOMAndUpdate Can`t find sig.\n");
         }; if (hacks.PerformLuaInjection == 0x1 || hacks.LuaDumper) InstallLuaHook(); 
+        auto InstallServerEventsHook = []()
+        {
+            const char pattern[] = { "\x55\x8B\xEC\x51\x53\x56\x57\x8B\x7D\x08\x85" };
+            const char mask[] = { "xxxxxxxxxxx" }; SigScan scn;
+            DWORD Hook = scn.FindPattern("client.dll", pattern, mask);
+            if (Hook != NULL)
+            {
+                callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)Hook;
+                MH_CreateHook((PVOID)Hook, &TriggerServerEvent, reinterpret_cast<PVOID*>(&callTriggerServerEvent));
+                LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::TriggerServerEvent Hook installed!\n");
+            }
+            else LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::TriggerServerEvent Can`t find sig.\n");
+        }; if (hacks.DumpServerEvents) InstallServerEventsHook();
         auto PatchLocker = []()
         {
             static const char pattern[] = { "\x55\x8B\xEC\x56\x8B\xF1\x8B\x8E\xA4\x01\x00\x00\x85\xC9\x74\x19\x8B\x01\x53\x8B\x5D\x08\x53\xFF\x90\x94" };
