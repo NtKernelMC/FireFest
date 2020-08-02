@@ -120,6 +120,7 @@ void __stdcall FireFest::InitHacks()
             reg->WriteInteger("FugasKey", hacks.FugasKey);
             reg->WriteInteger("TeargasKey", hacks.TeargasKey);
             reg->WriteInteger("ExplodeKey", hacks.ExplodeKey);
+            reg->WriteInteger("DetonatorKey", hacks.DetonatorKey);
             reg->WriteInteger("ExplosionType", hacks.ExplosionType);
             reg->WriteInteger("AntiVehicleFreeze", hacks.AntiFreeze);
             reg->WriteInteger("AntiDoorsLock", hacks.AntiLock);
@@ -145,6 +146,7 @@ void __stdcall FireFest::InitHacks()
             hacks.FugasKey = reg->ReadInteger("FugasKey");
             hacks.TeargasKey = reg->ReadInteger("TeargasKey");
             hacks.ExplodeKey = reg->ReadInteger("ExplodeKey");
+            hacks.DetonatorKey = reg->ReadInteger("DetonatorKey");
             hacks.ExplosionType = (eExplosionType)reg->ReadInteger("ExplosionType");
             hacks.AntiFreeze = (bool)reg->ReadInteger("AntiVehicleFreeze");
             hacks.AntiLock = (bool)reg->ReadInteger("AntiDoorsLock");
@@ -311,6 +313,12 @@ void __stdcall FireFest::KeyChecker(void)
             else MessageBeep(MB_ICONERROR);
             hacks.ExplosionEnabled ^= true;
         }
+        if (GetAsyncKeyState(hacks.DetonatorKey))
+        {
+            if (!hacks.DetonatorEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.DetonatorEnabled ^= true;
+        }
         if (GetAsyncKeyState(VK_RBUTTON))
         {
             DWORD TargetPointer = *(DWORD*)0xB6F3B8;
@@ -475,7 +483,7 @@ void __stdcall FireFest::PedPoolParser(void)
     {
         if (!hacks.StingerEnabled && !hacks.BombingEnabled && !hacks.FlareEnabled && 
         !hacks.MisleadEnabled && !hacks.KickerEnabled && !hacks.FugasEnabled && 
-        !hacks.TeargasEnabled && !hacks.ExplosionEnabled) continue;
+        !hacks.TeargasEnabled && !hacks.ExplosionEnabled && !hacks.DetonatorEnabled) continue;
         DWORD pedPoolUsageInfo = *(DWORD*)0xB74490; CVector TargetPos;
         DWORD pedPoolBegining = *(DWORD*)pedPoolUsageInfo;
         DWORD byteMapAddr = *(DWORD*)(pedPoolUsageInfo + 4);
@@ -576,7 +584,20 @@ void __stdcall FireFest::PedPoolParser(void)
                         {
                             TargetPos.fZ -= 0.3f;
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
+                            Sleep(50); TargetPos.fZ = *(float*)(Matrix + 0x38); TargetPos.fZ -= 1.5f;
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_REMOTE_SATCHEL_CHARGE, TargetPos, 31.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(300);
+                        }
+                    }
+                    if (hacks.DetonatorEnabled)
+                    {
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed &&
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF)) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF))
+                        {
+                            TargetPos.fZ += 1.5f;
+                            AddProjectile(GetLocalEntity(), WEAPONTYPE_REMOTE_SATCHEL_CHARGE, TargetPos, 0.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
+                            Sleep(REPEAT_DELAY);
                         }
                     }
                     if (hacks.TeargasEnabled)

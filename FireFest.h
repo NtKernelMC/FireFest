@@ -20,7 +20,7 @@ using namespace std;
 typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
-#define HACK_BUILD_VER "1411"
+#define HACK_BUILD_VER "1412"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -90,6 +90,7 @@ private:
 		bool FugasEnabled;
 		bool TeargasEnabled;
 		bool ExplosionEnabled;
+		bool DetonatorEnabled;
 		bool AntiFreeze;
 		bool AntiLock;
 		bool AntiKeys;
@@ -97,7 +98,7 @@ private:
 		bool EventDisabler;
 		bool DumpServerEvents;
 		bool AutoFindScript;
-		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey;
+		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, DetonatorKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
 		bool ProtectSelf;
@@ -106,11 +107,11 @@ private:
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; bool ProtectSelf = true;
+			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; ProtectSelf = true; 
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true; DumpServerEvents = false;
 			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = false;
-			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT, 
-			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3;
+			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT,
+			FugasKey = VK_NUMPAD1, TeargasKey = VK_NUMPAD2, ExplodeKey = VK_NUMPAD3, DetonatorKey = VK_NUMPAD4;
 			FlareEnabled = false;
 			BombingEnabled = false;
 			StingerEnabled = false;
@@ -119,6 +120,7 @@ private:
 			FugasEnabled = false;
 			TeargasEnabled = false;
 			ExplosionEnabled = false;
+			DetonatorEnabled = false;
 			iterationDelay = 105;
 		}
 	}; static HacksData hacks;
