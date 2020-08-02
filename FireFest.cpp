@@ -294,6 +294,7 @@ void __stdcall FireFest::KeyChecker(void)
         }
         if (GetAsyncKeyState(hacks.FugasKey))
         {
+            if (hacks.aimMode == HacksData::AIMING_TYPE::AIM_CARPET) hacks.aimMode = HacksData::AIMING_TYPE::AIM_MASSIVE;
             if (!hacks.FugasEnabled) MessageBeep(MB_ICONASTERISK);
             else MessageBeep(MB_ICONERROR);
             hacks.FugasEnabled ^= true;
@@ -317,6 +318,7 @@ void __stdcall FireFest::KeyChecker(void)
             if (TargetPed != NULL)
             {
                 hacks.LastTarget = TargetPed;
+                if (hacks.aimMode != HacksData::AIMING_TYPE::AIM_SELF)
                 hacks.aimMode = HacksData::AIMING_TYPE::AIM_TARGET;
                 MessageBeep(MB_ICONHAND); Sleep(1500);
             }
@@ -325,6 +327,13 @@ void __stdcall FireFest::KeyChecker(void)
         {
             hacks.aimMode = HacksData::AIMING_TYPE::AIM_SELF;
             MessageBeep(MB_ICONASTERISK); Sleep(1500);
+        }
+        if (GetAsyncKeyState(VK_NUMPAD0))
+        {
+            if (!hacks.FugasEnabled) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.FugasEnabled ^= true;
+            hacks.aimMode = HacksData::AIMING_TYPE::AIM_CARPET;
         }
         Sleep(350);
     }
@@ -523,8 +532,9 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.MisleadEnabled)
                     {
-                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
-                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && 
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF)) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF))
                         {
                             TargetPos.fZ += 1.0f; 
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_ROCKET, TargetPos, 5.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
@@ -533,18 +543,36 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.FugasEnabled)
                     {
-                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
-                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed &&
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_CARPET)) ||
+                        hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE)
                         {
                             CVector direction(0.0f, 0.0f, 0.0f);
-                            AddProjectile(GetLocalEntity(), WEAPONTYPE_MOLOTOV, TargetPos, 3.0f, &direction, nullptr);
-                            Sleep(REPEAT_DELAY);
+                            if (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE)
+                            {
+                                AddProjectile(GetLocalEntity(), WEAPONTYPE_MOLOTOV, TargetPos, 3.0f, &direction, nullptr);
+                                Sleep(REPEAT_DELAY);
+                            }
+                            else if (hacks.aimMode == HacksData::AIMING_TYPE::AIM_CARPET)
+                            {
+                                static bool variator = false;
+                                for (short carpets = 1; carpets <= 10; carpets++)
+                                {
+                                    TargetPos.fZ += 0.3f; TargetPos.fY -= (5.0f * carpets);
+                                    if (!variator) TargetPos.fX += 15.0f;
+                                    else TargetPos.fX -= 15.0f;
+                                    AddProjectile(GetLocalEntity(), WEAPONTYPE_MOLOTOV, TargetPos, 0.0f, &direction, nullptr);
+                                    Sleep(200); variator ^= true;
+                                }
+                                Sleep(REPEAT_DELAY * 2);
+                            }
                         }
                     }
                     if (hacks.KickerEnabled)
                     {
-                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
-                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed &&
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF)) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF))
                         {
                             TargetPos.fZ -= 0.3f;
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 15.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
@@ -553,8 +581,9 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.TeargasEnabled)
                     {
-                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
-                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed &&
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF)) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF))
                         {
                             AddProjectile(GetLocalEntity(), WEAPONTYPE_TEARGAS, TargetPos, 0.0f, &CVector(0.0f, 0.0f, 0.0f), nullptr);
                             Sleep(REPEAT_DELAY);
@@ -562,8 +591,9 @@ void __stdcall FireFest::PedPoolParser(void)
                     }
                     if (hacks.ExplosionEnabled)
                     {
-                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed && hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET) ||
-                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE))
+                        if ((hacks.LastTarget != NULL && hacks.LastTarget == CPed &&
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_TARGET || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF)) ||
+                        (hacks.aimMode == HacksData::AIMING_TYPE::AIM_MASSIVE || hacks.aimMode == HacksData::AIMING_TYPE::AIM_SELF))
                         {
                             static char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x28\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\xC7" };
                             static char mask[] = { "xxxxxx????xxxxxxxxxxxxx????xxxxxxxxxxxxx" };

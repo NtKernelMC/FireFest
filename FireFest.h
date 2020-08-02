@@ -20,7 +20,7 @@ using namespace std;
 typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
-#define HACK_BUILD_VER "1410"
+#define HACK_BUILD_VER "1411"
 static DWORD REPEAT_DELAY = 900;
 class FireFest
 {
@@ -75,7 +75,8 @@ private:
 		{
 			AIM_MASSIVE = 1,
 			AIM_TARGET = 2,
-			AIM_SELF = 3
+			AIM_SELF = 3,
+			AIM_CARPET = 4
 		};
 		CVector CamPos;
 		AIMING_TYPE aimMode;
