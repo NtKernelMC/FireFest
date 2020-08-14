@@ -20,8 +20,8 @@ using namespace std;
 typedef long CIMTYPE;
 #define FUNC_AddProjectile 0x737C80
 #define LOCAL_CPED 0xB6F5F0
-#define HACK_BUILD_VER "1412"
-static DWORD REPEAT_DELAY = 900;
+#define HACK_BUILD_VER "1413"
+static DWORD REPEAT_DELAY = 400;
 class FireFest
 {
 private:
@@ -51,6 +51,12 @@ private:
 	typedef void CClientEntity;
 	typedef void CLuaMain;
 	static CClientPlayer* pPlayer;
+	typedef void CClientMarker;
+	typedef DWORD SColor;
+	typedef void CResource;
+	typedef CClientMarker* (__cdecl* ptrCreateMarker)(CResource* Resource, 
+	CVector& vecPosition, const char* szType, float fSize, const SColor color);
+	static ptrCreateMarker callCreateMarker;
 	typedef bool(__cdecl* ptrTriggerServerEvent)(const char* szName, CClientEntity* CallWithEntity, void* Arguments);
 	static ptrTriggerServerEvent callTriggerServerEvent;
 	typedef bool (__cdecl* ptrAddEventHandler)(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
@@ -60,6 +66,10 @@ private:
 	static callGetCustomData ptrGetCustomData;
 	typedef void (__thiscall* callSetCustomData)(void *ECX, const char* szName, void* Variable, bool bSynchronized);
 	static callSetCustomData ptrSetCustomData;
+	bool typedef (__cdecl* ptrSetElementData)(CClientEntity* Entity, const char* szName, void* Variable, bool bSynchronize);
+	static ptrSetElementData callSetElementData;
+	typedef void (__thiscall* ptrDeleteCustomData)(CClientEntity* ECX, const char* szName);
+	static ptrDeleteCustomData callDeleteCustomData;
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	typedef void(__thiscall* callSetFrozen)(void* ECX, bool freeze);
@@ -98,6 +108,7 @@ private:
 		bool EventDisabler;
 		bool DumpServerEvents;
 		bool AutoFindScript;
+		bool MarkerCreation;
 		DWORD FlareKey, BombKey, StingerKey, MisleadKey, KickerKey, FugasKey, TeargasKey, ExplodeKey, DetonatorKey;
 		DWORD iterationDelay;
 		DWORD LastTarget;
@@ -107,7 +118,7 @@ private:
 		bool PerformLuaInjection;
 		HacksData()
 		{
-			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; ProtectSelf = true; 
+			AntiLock = false; AntiFreeze = false; AntiKeys = false; ElemDumper = false; ProtectSelf = true; MarkerCreation = false;
 			aimMode = AIMING_TYPE::AIM_MASSIVE; ExplosionType = EXP_TYPE_TANK; AutoFindScript = true; DumpServerEvents = false;
 			LastTarget = 0x0; LuaDumper = false; PerformLuaInjection = false; ScriptNumber = 0x1; EventDisabler = false;
 			FlareKey = VK_END, BombKey = VK_DELETE, StingerKey = VK_HOME, MisleadKey = VK_INSERT, KickerKey = VK_SNAPSHOT,
@@ -142,7 +153,10 @@ public:
 	static void __fastcall SetEngine(void* ECX, void* EDX, bool status);
 	static void* __fastcall GetCustomData(CClientEntity* ECX, void *EDX, const char* szName, bool bInheritData, bool* pbIsSynced);
 	static void __fastcall SetCustomData(CClientEntity* ECX, void* EDX, const char* szName, void* Variable, bool bSynchronized = true);
+	static bool __cdecl SetElementData(CClientEntity* Entity, const char* szName, void* Variable, bool bSynchronize);
+	static void __fastcall DeleteCustomData(CClientEntity* ECX, void* EDX, const char* szName);
 	static bool __cdecl AddEventHandler(CLuaMain* LuaMain, const char* szName, CClientEntity* Entity,
 	const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod);
 	static bool __cdecl TriggerServerEvent(const char* szName, CClientEntity* CallWithEntity, void* Arguments);
+	static CClientMarker* __cdecl CreateMarker(CResource* Resource, CVector& vecPosition, const char* szType, float fSize, const SColor color);
 };

@@ -9,10 +9,13 @@ FireFest::callSetLocked FireFest::pSetLocked = (FireFest::callSetLocked)0x0;
 FireFest::callSetEngine FireFest::pSetEngine = (FireFest::callSetEngine)0x0;
 FireFest::callGetCustomData FireFest::ptrGetCustomData = (FireFest::callGetCustomData)0x0;
 FireFest::callSetCustomData FireFest::ptrSetCustomData = (FireFest::callSetCustomData)0x0;
+FireFest::ptrSetElementData FireFest::callSetElementData = nullptr;
+FireFest::ptrDeleteCustomData FireFest::callDeleteCustomData = nullptr;
 FireFest::ptrAddProjectile FireFest::AddProjectile = (FireFest::ptrAddProjectile)FUNC_AddProjectile;
 typedef bool(__cdecl* ptrCheckUTF8BOMAndUpdate)(char** pcpOutBuffer, unsigned int* puiOutSize);
 ptrCheckUTF8BOMAndUpdate callCheckUTF8BOMAndUpdate = (ptrCheckUTF8BOMAndUpdate)0x0;
 FireFest::ptrTriggerServerEvent FireFest::callTriggerServerEvent = (FireFest::ptrTriggerServerEvent)0x0;
+FireFest::ptrCreateMarker FireFest::callCreateMarker = nullptr;
 bool __stdcall FireFest::IsDirectoryExists(const std::string& dirName_in)
 {
     DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
@@ -55,6 +58,12 @@ void __fastcall FireFest::SetCustomData(CClientEntity* ECX, void* EDX, const cha
     ptrSetCustomData(ECX, szName, Variable, bSynchronized);
     LogInFile("!0_SetCustomData.log", "SetCustomData: %s\n", szName);
 }
+bool __cdecl FireFest::SetElementData(CClientEntity* Entity, const char* szName, void* Variable, bool bSynchronize)
+{
+    bool rslt = callSetElementData(Entity, szName, Variable, bSynchronize);
+    LogInFile("!0_SetElementData.log", "SetElementData: %s\n", szName);
+    return rslt;
+}
 void __fastcall FireFest::SetFrozen(void* ECX, void* EDX, bool freeze)
 {
     pSetFrozen(ECX, false);
@@ -77,7 +86,7 @@ bool __cdecl FireFest::AddEventHandler(CLuaMain* LuaMain, const char* szName, CC
 const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, float fPriorityMod)
 {
     static const std::map<std::string, bool> TargetEvents =
-    { { "onClientElementDataChange", true }, { "onClientExplosion", true }, { "onClientProjectileCreation", true }, { "onClientPlayerDamage", true },
+    { { "onClientElementDataChange", false }, { "onClientExplosion", false }, { "onClientProjectileCreation", false }, { "onClientPlayerDamage", false },
       { "onClientWeaponFire", false }, { "onClientVehicleExplode", false }, { "onClientPlayerWasted", false }, { "onClientPlayerVehicleEnter", false },
       { "onClientPlayerWeaponFire", false}, { "onClientPlayerSpawn", false }, { "onClientPlayerQuit", false }, { "onClientPlayerJoin", false },
       { "onClientPlayerPickupHit", false }, { "onClientPlayerPickupLeave", false },  { "onClientPickupHit", false }, { "onClientPlayerTarget", false },
@@ -92,6 +101,17 @@ const CLuaFunctionRef* iLuaFunction, bool bPropagated, DWORD eventPriority, floa
         }
     }
     return callAddEventHandler(LuaMain, szName, Entity, iLuaFunction, bPropagated, eventPriority, fPriorityMod);
+}
+FireFest::CClientMarker* __cdecl FireFest::CreateMarker(CResource* Resource, CVector& vecPosition, 
+const char* szType, float fSize, const SColor color)
+{
+    if (hacks.MarkerCreation) vecPosition = GetMyOwnPos();
+    CClientMarker* marker = callCreateMarker(Resource, vecPosition, szType, fSize, color);
+    return marker;
+}
+void __fastcall FireFest::DeleteCustomData(CClientEntity* ECX, void* EDX, const char* szName)
+{
+    if (!strcmp(szName, "data")) callDeleteCustomData(ECX, szName);
 }
 void __stdcall FireFest::InitHacks()
 {
@@ -156,6 +176,30 @@ void __stdcall FireFest::InitHacks()
         delete reg; return true;
     }; if (ReadHackSettings())
     {
+        auto AddAntiDataHook = []() -> void
+        {
+            const char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\xA8\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53" };
+            const char mask[] = { "xxxxxx????xxxxxxxxxxxxxx????xxxxxx" };
+            SigScan scn; DWORD Addr = scn.FindPattern("client.dll", pattern, mask);
+            if (Addr != NULL)
+            {
+                MH_CreateHook((PVOID)Addr, &DeleteCustomData, reinterpret_cast<PVOID*>(&callDeleteCustomData));
+                LogInFile("!0_FireFest.log", "CClientEntity::DeleteCustomData Hook installed!\n");
+            }
+            else LogInFile("!0_FireFest.log", "CClientEntity::DeleteCustomData - Can`t find sig.\n");
+        }; AddAntiDataHook();
+        auto AddMarkerHook = []() -> void
+        {
+            const char pattern[] = { "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x51\x53\x56\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B" };
+            const char mask[] = { "xxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxx" };
+            SigScan scn; DWORD Addr = scn.FindPattern("client.dll", pattern, mask);
+            if (Addr != NULL)
+            {
+                MH_CreateHook((PVOID)Addr, &CreateMarker, reinterpret_cast<PVOID*>(&callCreateMarker));
+                LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::CreateMarker Hook installed!\n");
+            }
+            else LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::CreateMarker - Can`t find sig.\n");
+        }; AddMarkerHook();
         auto AddEventHandlerHook = []() -> void
         {
             const char pattern[] = { "\x55\x8B\xEC\x56\x8B\x75\x0C\x85\xF6\x75\x06\x89\x35\x00\x00\x00\x00\x8B\x00\x00\x00\x00\x00\x56\xE8\x00\x00\x00\x00\x85\xC0\x74\x29" };
@@ -176,7 +220,7 @@ void __stdcall FireFest::InitHacks()
             DWORD Addr = scn.FindPattern("client.dll", pattern, mask);
             if (Addr != NULL)
             {
-                MH_CreateHook((PVOID)Addr, &GetCustomData, reinterpret_cast<PVOID*>(&ptrSetCustomData));
+                MH_CreateHook((PVOID)Addr, &SetCustomData, reinterpret_cast<PVOID*>(&ptrSetCustomData));
                 LogInFile("!0_FireFest.log", "CClientEntity::SetCustomData Hook installed!\n");
             }
             else LogInFile("!0_FireFest.log", "CClientEntity::SetCustomData - Can`t find sig.\n");
@@ -190,6 +234,16 @@ void __stdcall FireFest::InitHacks()
                 LogInFile("!0_FireFest.log", "CClientEntity::GetCustomData Hook installed!\n");
             }
             else LogInFile("!0_FireFest.log", "CClientEntity::GetCustomData - Can`t find sig.\n");
+            //////////////////////////////////////////////////////////////////////////////////////
+            const char pattern3[] = { "\x55\x8B\xEC\x83\xEC\x0C\x53\x56\x8B\x75\x0C\x85" };
+            const char mask3[] = { "xxxxxxxxxxxx" };
+            Addr = scn.FindPattern("client.dll", pattern3, mask3);
+            if (Addr != NULL)
+            {
+                MH_CreateHook((PVOID)Addr, &SetElementData, reinterpret_cast<PVOID*>(&callSetElementData));
+                LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::SetElementData Hook installed!\n");
+            }
+            else LogInFile("!0_FireFest.log", "CStaticFunctionDefinitions::SetElementData - Can`t find sig.\n");
         };
         if (hacks.ElemDumper) ElementDataHook();
         auto InstallLuaHook = []()
@@ -342,6 +396,17 @@ void __stdcall FireFest::KeyChecker(void)
             else MessageBeep(MB_ICONERROR);
             hacks.FugasEnabled ^= true;
             hacks.aimMode = HacksData::AIMING_TYPE::AIM_CARPET;
+        }
+        if (GetAsyncKeyState(VK_NUMPAD5))
+        {
+            hacks.aimMode = HacksData::AIMING_TYPE::AIM_MASSIVE;
+            MessageBeep(MB_ICONASTERISK);
+        }
+        if (GetAsyncKeyState(VK_NUMPAD6))
+        {
+            if (!hacks.MarkerCreation) MessageBeep(MB_ICONASTERISK);
+            else MessageBeep(MB_ICONERROR);
+            hacks.MarkerCreation ^= true;
         }
         Sleep(350);
     }
