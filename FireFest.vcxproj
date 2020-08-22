@@ -163,12 +163,14 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="FireFest.cpp" />
+    <ClCompile Include="MD5.cpp" />
     <ClCompile Include="Registry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CVector.h" />
     <ClInclude Include="FireFest.h" />
     <ClInclude Include="HWBP.h" />
+    <ClInclude Include="MD5.h" />
     <ClInclude Include="MtaStuff.h" />
     <ClInclude Include="Registry.h" />
     <ClInclude Include="sigscan.h" />
