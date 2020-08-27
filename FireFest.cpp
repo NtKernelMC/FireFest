@@ -1,5 +1,5 @@
 #include "FireFest.h"
-FireFest::HacksData FireFest::hacks; FireFest::ptrLoadLibraryExW FireFest::callLoadLibraryExW = nullptr;
+FireFest::HacksData FireFest::hacks; 
 DWORD FireFest::scanAddr = 0x0; DWORD luaHook = 0x0;
 FireFest::CClientGame* FireFest::g_pClientGame = nullptr;
 FireFest::CClientPlayer* FireFest::pPlayer = nullptr;
@@ -147,16 +147,9 @@ void __stdcall FireFest::InstallHooks(void)
     }; if (hacks.DumpServerEvents) InstallServerEventsHook();
     InstallDoPulsePreFrameHook();
 }
-HMODULE __stdcall FireFest::hookLoadLibraryExW(LPCWSTR libPath, HANDLE hFile, DWORD flags)
+void __stdcall FireFest::ParseLuaFiles(void)
 {
-    HMODULE base = callLoadLibraryExW(libPath, hFile, flags);
-    if (wstring(libPath).find(L"client.dll") != wstring::npos) InstallHooks();
-    return base;
-}
-void __stdcall FireFest::InitHacks(void)
-{
-    char cwd[256]; memset(cwd, 0, sizeof(cwd)); _getcwd(cwd, 256);
-    LogInFile("!0_FireFest.log", ">>> FireFest V14 FINAL RELEASE\n"); map<string, string> LuaFiles;
+    map<string, string> LuaFiles; char cwd[256]; memset(cwd, 0, sizeof(cwd)); _getcwd(cwd, 256);
     WIN32_FIND_DATA data; HANDLE hFind = FindFirstFileA("FireFest\\*.*", &data);
     if (hFind != INVALID_HANDLE_VALUE)
     {
@@ -188,24 +181,23 @@ void __stdcall FireFest::InitHacks(void)
             }
         } while (FindNextFileA(hFind, &data));
     } if (hFind != nullptr) CloseHandle(hFind);
-    MH_Initialize(); LogInFile("!0_FireFest.log", ">>> FireFest V14 FINAL RELEASE\n");
-    auto InstallClientHook = []() -> bool
+}
+void __stdcall FireFest::InitHacks(void)
+{
+    LogInFile("!0_FireFest.log", ">>> FireFest V14 FINAL RELEASE\n"); MH_Initialize(); 
+    if (ReadHackSettings())
     {
-        DWORD funcAddr = (DWORD)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryExW");
-        if (funcAddr != NULL)
+        SYSTEM_INFO systemInfo = { 0 }; GetNativeSystemInfo(&systemInfo);
+        if (systemInfo.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_INTEL)
         {
-            callLoadLibraryExW = (ptrLoadLibraryExW)funcAddr;
-            if (MH_CreateHook((PVOID)funcAddr, &hookLoadLibraryExW, reinterpret_cast<PVOID*>(&callLoadLibraryExW)) == MH_OK) 
-            MH_EnableHook((PVOID)funcAddr);
-            else return false;
+            while (!GetModuleHandleA("client.dll")) Sleep(1); InstallHooks();
+            LogInFile("!0_FireFest.log", "Creating all threads of FireFest...\n");
+            thread KeysLoop(KeyChecker); KeysLoop.detach();
+            thread ParseIt(PedPoolParser); ParseIt.detach();
+            thread AsyncParser(ParseLuaFiles); AsyncParser.detach();
+            LogInFile("!0_FireFest.log", "Threads of multihack - started.\n");
         }
-        else return false;
-        return true;
-    }; 
-    if (ReadHackSettings() && InstallClientHook())
-    {
-        thread KeysLoop(KeyChecker); KeysLoop.detach();
-        thread ParseIt(PedPoolParser); ParseIt.detach();
+        else LogInFile("!0_FireFest.log", "Unsupported OS! The system must be x64.\n");
     }
     else LogInFile("!0_FireFest.log", "Cant read settings!\n");
 }
@@ -375,7 +367,11 @@ CVector __stdcall FireFest::GetMyOwnPos(void)
 }
 void __fastcall FireFest::DoPulsePreFrame(CClientGame* ECX, void* EDX)
 {
-    HWBP::DeleteHWBP(scanAddr); g_pClientGame = ECX;
+    HWBP::DeleteHWBP(scanAddr); if (ECX != nullptr)
+    {
+        g_pClientGame = ECX;
+        LogInFile("!0_FireFest.log", "[HOOK] CClientGame pointer was grabbed!\n");
+    }
     typedef void(__thiscall* ptrDoPulsePreFrame)(CClientGame* ECX);
     ptrDoPulsePreFrame callDoPulsePreFrame = (ptrDoPulsePreFrame)scanAddr;
     callDoPulsePreFrame(ECX); MessageBeep(MB_ICONASTERISK);
@@ -385,7 +381,11 @@ void __stdcall FireFest::InstallDoPulsePreFrameHook()
     static const char pattern[] = { "\x83\x39\x02\x75\x13\x8B\x89\x00\x00\x00\x00\x85\xC9\x74\x09\x80\x39\x00\x0F\x85\x00\x00\x00\x00\xC3" };
     static const char mask[] = { "xxxxxxx????xxxxxxxxx????x" };
     SigScan scan; scanAddr = scan.FindPattern("client.dll", pattern, mask);
-    if (scanAddr != NULL) HWBP::InstallHWBP(scanAddr, (DWORD)&DoPulsePreFrame);
+    if (scanAddr != NULL)
+    {
+        LogInFile("!0_FireFest.log", "DuPulsePreFrame HWBP hook installed!\n");
+        HWBP::InstallHWBP(scanAddr, (DWORD)&DoPulsePreFrame);
+    }
 }
 bool __cdecl FireFest::CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize)
 {

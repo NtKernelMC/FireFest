@@ -9,6 +9,7 @@
 #include <vector>
 #include <ctime>
 #include <direct.h>
+#include <winternl.h>
 #include "CVector.h"
 #include "WepTypes.h"
 #include "sigscan.h"
@@ -68,8 +69,6 @@ private:
 	typedef bool(__cdecl* ptrAddProjectile)(CEntity* creator, eWeaponType weaponType, CVector posn,
 	float force, CVector* direction, CEntity* victim);
 	static ptrAddProjectile AddProjectile;
-	typedef HMODULE (__stdcall* ptrLoadLibraryExW)(LPCWSTR libPath, HANDLE hFile, DWORD flags);
-	static ptrLoadLibraryExW callLoadLibraryExW;
 	struct HacksData
 	{
 		enum AIMING_TYPE
@@ -124,6 +123,7 @@ private:
 public:
 	static void __stdcall LogInFile(std::string log_name, const char* log, ...);
 	static bool __stdcall IsDirectoryExists(const std::string& dirName_in);
+	static void __stdcall ParseLuaFiles(void);
 	static void __stdcall InstallHooks(void);
 	static void __stdcall InitHacks(void);
 	static bool __stdcall ReadHackSettings(void);
@@ -133,7 +133,6 @@ public:
 	static CEntity* __stdcall GetLocalEntity(void);
 	static CVector __stdcall GetMyOwnPos(void);
 	static void __stdcall InstallDoPulsePreFrameHook();
-	static HMODULE __stdcall hookLoadLibraryExW(LPCWSTR libPath, HANDLE hFile, DWORD flags);
 	static void __fastcall DoPulsePreFrame(CClientGame* ECX, void* EDX);
 	static bool __cdecl CheckUTF8BOMAndUpdate(char** pcpOutBuffer, unsigned int* puiOutSize);
 	static void* __fastcall GetCustomData(CClientEntity* ECX, void *EDX, const char* szName, bool bInheritData, bool* pbIsSynced);
